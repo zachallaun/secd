@@ -4,8 +4,10 @@
 
 (defn secd-registers
   [& {:keys [stack env code dump] :as registers}]
-  (let [defaults (zipmap [:stack :env :code :dump]
-                         (repeat 4 []))]
+  (let [defaults {:stack '()
+                  :env {}
+                  :code '()
+                  :dump '()}]
     (merge defaults registers)))
 
 ;; SECD Basic Instruction Set
@@ -25,3 +27,41 @@
 
 (definstruct :nil {:keys [stack] :as registers}
   (assoc registers :stack (cons nil stack)))
+
+(definstruct :ldc {:keys [stack code] :as registers}
+  (assoc registers
+    :stack (cons (peek code) stack)
+    :code (pop code)))
+
+(definstruct :ld {:keys [stack env code] :as registers}
+  (assoc registers
+    :stack (cons (get env (peek code) ::unbound) stack)
+    :code (pop code)))
+
+;; Support for built-in functions
+
+;; Unary functions
+
+(defmacro defunary
+  [op f]
+  `(definstruct ~op registers#
+     (let [stack# (:stack registers#)]
+       (assoc registers#
+         :stack (cons (~f (peek stack#)) (pop stack#))))))
+
+(defunary :atom (complement coll?))
+(defunary :car first)
+(defunary :cdr rest)
+
+;; Binary functions
+
+(defmacro defbinary
+  [op f]
+  `(definstruct ~op registers#
+     (let [[a# b# & stack#] (:stack registers#)]
+       (assoc registers#
+         :stack (cons (~f a# b#) stack#)))))
+
+(defbinary :cons cons)
+(defbinary :add +)
+(defbinary :sub -)
