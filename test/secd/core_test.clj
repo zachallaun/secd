@@ -25,11 +25,14 @@
         (doinstruct :ldc registers) => (secd-registers :stack '(:a))))
 
 (fact "about :ld instruction"
-      (doinstruct :ld (secd-registers :code '([0 :key]) :env [{:key :val}]))
-      => (secd-registers :stack '(:val) :env [{:key :val}])
+      (doinstruct :ld (secd-registers :code '([0 0]) :env [[:v1]]))
+      => (secd-registers :stack '(:v1) :env [[:v1]])
 
-      (doinstruct :ld (secd-registers :code '([:key])))
-      => (secd-registers :stack '(:secd.core/unbound)))
+      (doinstruct :ld (secd-registers :code '([0 0]) :env '[(:v1)]))
+      => (secd-registers :stack '(:v1) :env '[(:v1)])
+
+      (doinstruct :ld (secd-registers :code '([1 1]) :env '[() (:v1 :v2)]))
+      => (secd-registers :stack '(:v2) :env '[() (:v1 :v2)]))
 
 (fact "about unary built-ins"
       (doinstruct :atom (secd-registers :stack '(:a)))

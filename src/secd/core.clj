@@ -33,9 +33,14 @@
     :stack (cons (first code) stack)
     :code (rest code)))
 
+(defn nnth
+  "(nnth coll 0 1) => (nth (nth coll 0) 1)"
+  [coll n1 n2]
+  (nth (nth coll n1) n2))
+
 (definstruct :ld {:keys [stack env code] :as registers}
   (assoc registers
-    :stack (cons (get-in env (first code) ::unbound) stack)
+    :stack (cons (apply nnth env (first code)) stack)
     :code (rest code)))
 
 ;; Support for built-in functions
@@ -110,6 +115,8 @@
 
 (definstruct :dum {:keys [env] :as registers}
   (assoc registers :env (cons nil env)))
+
+
 
 ;; TODO: recursive apply (:rap)
 
