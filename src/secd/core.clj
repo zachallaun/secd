@@ -55,6 +55,7 @@
          :stack (cons (~f (first stack#)) (rest stack#))))))
 
 (defunary :atom (complement coll?))
+(defunary :null nil?)
 (defunary :car first)
 (defunary :cdr rest)
 
@@ -70,7 +71,7 @@
 (defbinary :cons cons)
 (defbinary :add +)
 (defbinary :sub -)
-(defbinary :mult *)
+(defbinary :mty *)
 (defbinary :div /)
 
 ;; If-Then-Else instructions

@@ -41,6 +41,12 @@
       (doinstruct :atom (secd-registers :stack '([])))
       => (secd-registers :stack '(false))
 
+      (doinstruct :null (secd-registers :stack '(nil)))
+      => (secd-registers :stack '(true))
+
+      (doinstruct :null (secd-registers :stack '(:not-nil)))
+      => (secd-registers :stack '(false))
+
       (doinstruct :car (secd-registers :stack '((1))))
       => (secd-registers :stack '(1))
 
@@ -55,7 +61,10 @@
       => (secd-registers :stack '(2))
 
       (doinstruct :sub (secd-registers :stack '(1 1)))
-      => (secd-registers :stack '(0)))
+      => (secd-registers :stack '(0))
+
+      (doinstruct :mty (secd-registers :stack '(2 2)))
+      => (secd-registers :stack '(4)))
 
 (fact "about if-then-else instructions"
       (let [truthy-sel (secd-registers :stack '(:truthy)
@@ -108,7 +117,7 @@
 (fact "about do-secd* math"
       (do-secd* [:ldc 1 :ldc 2 :add]) => (fstack-is 3)
       (do-secd* [:ldc 1 :ldc 2 :sub]) => (fstack-is 1)
-      (do-secd* [:ldc 5 :ldc 5 :mult]) => (fstack-is 25)
+      (do-secd* [:ldc 5 :ldc 5 :mty]) => (fstack-is 25)
       (do-secd* [:ldc 5 :ldc 5 :div]) => (fstack-is 1))
 
 (fact "about do-secd* consing"
@@ -144,7 +153,7 @@
       ;; let f(x,y)=x+y in f(2*3, 6-4)
       (do-secd* [:nil
                 :ldc 4 :ldc 6 :sub :cons
-                :ldc 3 :ldc 2 :mult :cons
+                :ldc 3 :ldc 2 :mty :cons
                 :ldf [:ld [0 1] :ld [0 0] :add :rtn]
                 :ap])
       => (fstack-is 8))
