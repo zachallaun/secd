@@ -107,3 +107,31 @@
       (do-secd* [:ldc 1 :ldc 2 :sub]) => (fstack-is 1)
       (do-secd* [:ldc 5 :ldc 5 :mult]) => (fstack-is 25)
       (do-secd* [:ldc 5 :ldc 5 :div]) => (fstack-is 1))
+
+(fact "about do-secd*"
+      (do-secd* [:nil
+                 :ldc 1 :cons
+                 :ldc 2 :cons])
+      => (fstack-is '(2 1))
+
+      ;; 5 + (if (atom :an-atom) then 1 else 2)
+      (do-secd* [:ldc 5
+                 :ldc :an-atom
+                 :atom
+                 :sel
+                 '(:ldc 1 :join)
+                 '(:ldc 2 :join)
+                 :add])
+      => (fstack-is 6)
+
+      ;; (5 (if (atom []) then + else -) 5) + 10
+      (do-secd* [:ldc 5
+                 :ldc 5
+                 :ldc []
+                 :atom
+                 :sel
+                 '(:add :join)
+                 '(:sub :join)
+                 :ldc 10
+                 :add])
+      => (fstack-is 10))
