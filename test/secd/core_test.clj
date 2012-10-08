@@ -13,7 +13,7 @@
 (def fstack-is (register-checker (comp first :stack)))
 
 (fact "about SECD register defaults"
-      (secd-registers) => {:stack () :env () :code () :dump ()}
+      (secd-registers) => {:stack () :env [] :code () :dump ()}
       (secd-registers :stack '(:a :b :c)) => {:stack '(:a :b :c)
                                               :env () :code () :dump ()})
 
@@ -25,10 +25,10 @@
         (doinstruct :ldc registers) => (secd-registers :stack '(:a))))
 
 (fact "about :ld instruction"
-      (doinstruct :ld (secd-registers :code '(:key) :env {:key :val}))
-      => (secd-registers :stack '(:val) :env {:key :val})
+      (doinstruct :ld (secd-registers :code '([0 :key]) :env [{:key :val}]))
+      => (secd-registers :stack '(:val) :env [{:key :val}])
 
-      (doinstruct :ld (secd-registers :code '(:key)))
+      (doinstruct :ld (secd-registers :code '([:key])))
       => (secd-registers :stack '(:secd.core/unbound)))
 
 (fact "about unary built-ins"

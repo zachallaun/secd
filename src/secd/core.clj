@@ -5,7 +5,7 @@
 (defn secd-registers
   [& {:keys [stack env code dump] :as registers}]
   (let [defaults {:stack ()
-                  :env ()
+                  :env []
                   :code ()
                   :dump ()}]
     (merge defaults registers)))
@@ -35,7 +35,7 @@
 
 (definstruct :ld {:keys [stack env code] :as registers}
   (assoc registers
-    :stack (cons (get env (peek code) ::unbound) stack)
+    :stack (cons (get-in env (peek code) ::unbound) stack)
     :code (pop code)))
 
 ;; Support for built-in functions
