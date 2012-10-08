@@ -21,9 +21,9 @@
      ~@body))
 
 ;; Access objects and push values to the stack:
-;; NIL ::  s e (NIL.c) d      => (nil.s) e c d
-;; LDC ::  s e (LDC x.c) d    => (x.s) e c d
-;; LD  ::  s e (LD (i.j).c) d => ((locate (i.j) e).s) e c d
+;; NIL  ::  s e (NIL.c) d      => (nil.s) e c d
+;; LDC  ::  s e (LDC x.c) d    => (x.s) e c d
+;; LD   ::  s e (LD (i.j).c) d => ((locate (i.j) e).s) e c d
 
 (definstruct :nil {:keys [stack] :as registers}
   (assoc registers :stack (cons nil stack)))
@@ -65,6 +65,8 @@
 (defbinary :cons cons)
 (defbinary :add +)
 (defbinary :sub -)
+(defbinary :mult *)
+(defbinary :div /)
 
 ;; If-Then-Else instructions
 
@@ -110,3 +112,11 @@
   (assoc registers :env (cons nil env)))
 
 ;; TODO: recursive apply (:rap)
+
+(defn do-secd* [code]
+  (if-let [code (and (seq code) (into () (reverse code)))]
+    (loop [registers (secd-registers :code code)]
+      (if-let [instruction (and (seq (:code registers))
+                                (peek (:code registers)))]
+        (recur (doinstruct instruction (update-in registers [:code] pop)))
+        registers))))

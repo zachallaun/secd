@@ -2,6 +2,16 @@
   (:use midje.sweet
         secd.core))
 
+(defn register-checker [selector]
+  (fn [pred]
+    (fn [registers]
+      (if (fn? pred)
+        (pred (selector registers))
+        (= pred (selector registers))))))
+
+(def stack-is (register-checker :stack))
+(def fstack-is (register-checker (comp first :stack)))
+
 (fact "about SECD register defaults"
       (secd-registers) => {:stack () :env () :code () :dump ()}
       (secd-registers :stack '(:a :b :c)) => {:stack '(:a :b :c)
@@ -87,3 +97,13 @@
       (doinstruct :dum (secd-registers)) => (secd-registers :env '(nil))
       (doinstruct :dum (secd-registers :env '(1 2 3)))
       => (secd-registers :env '(nil 1 2 3)))
+
+(fact "about do-secd* termination"
+      (do-secd* []) => nil?
+      (do-secd* [:nil]) => (fstack-is nil))
+
+(fact "about do-secd* math"
+      (do-secd* [:ldc 1 :ldc 2 :add]) => (fstack-is 3)
+      (do-secd* [:ldc 1 :ldc 2 :sub]) => (fstack-is 1)
+      (do-secd* [:ldc 5 :ldc 5 :mult]) => (fstack-is 25)
+      (do-secd* [:ldc 5 :ldc 5 :div]) => (fstack-is 1))
