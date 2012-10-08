@@ -6,11 +6,14 @@
   (fn [pred]
     (fn [registers]
       (if (fn? pred)
-        (pred (selector registers))
-        (= pred (selector registers))))))
+        (and (pred (selector registers)) registers)
+        (and (= pred (selector registers)) registers)))))
 
 (def stack-is (register-checker :stack))
 (def fstack-is (register-checker (comp first :stack)))
+(def env-is (register-checker :env))
+(def code-is (register-checker :code))
+(def dump-is (register-checker :dump))
 
 (fact "about SECD register defaults"
       (secd-registers) => {:stack () :env [] :code () :dump ()}
@@ -18,53 +21,35 @@
                                               :env () :code () :dump ()})
 
 (fact "about :nil instruction"
-      (doinstruct :nil (secd-registers)) => (secd-registers :stack '(nil)))
+      (doinstruct :nil (secd-registers)) => (fstack-is nil))
 
 (fact "about :ldc instruction"
       (let [registers (secd-registers :code '(:a))]
-        (doinstruct :ldc registers) => (secd-registers :stack '(:a))))
+        (doinstruct :ldc registers) => (fstack-is :a)))
 
 (fact "about :ld instruction"
       (doinstruct :ld (secd-registers :code '([0 0]) :env [[:v1]]))
-      => (secd-registers :stack '(:v1) :env [[:v1]])
+      => (comp (fstack-is :v1) (env-is [[:v1]]))
 
       (doinstruct :ld (secd-registers :code '([0 0]) :env '[(:v1)]))
-      => (secd-registers :stack '(:v1) :env '[(:v1)])
+      => (comp (fstack-is :v1) (env-is '[(:v1)]))
 
       (doinstruct :ld (secd-registers :code '([1 1]) :env '[() (:v1 :v2)]))
-      => (secd-registers :stack '(:v2) :env '[() (:v1 :v2)]))
+      => (comp (fstack-is :v2) (env-is '[() (:v1 :v2)])))
 
 (fact "about unary built-ins"
-      (doinstruct :atom (secd-registers :stack '(:a)))
-      => (secd-registers :stack '(true))
-
-      (doinstruct :atom (secd-registers :stack '([])))
-      => (secd-registers :stack '(false))
-
-      (doinstruct :null (secd-registers :stack '(nil)))
-      => (secd-registers :stack '(true))
-
-      (doinstruct :null (secd-registers :stack '(:not-nil)))
-      => (secd-registers :stack '(false))
-
-      (doinstruct :car (secd-registers :stack '((1))))
-      => (secd-registers :stack '(1))
-
-      (doinstruct :cdr (secd-registers :stack '((1 2 3))))
-      => (secd-registers :stack '((2 3))))
+      (doinstruct :atom (secd-registers :stack '(:a)))       => (fstack-is true)
+      (doinstruct :atom (secd-registers :stack '([])))       => (fstack-is false)
+      (doinstruct :null (secd-registers :stack '(nil)))      => (fstack-is true)
+      (doinstruct :null (secd-registers :stack '(:not-nil))) => (fstack-is false)
+      (doinstruct :car (secd-registers :stack '((1))))       => (fstack-is 1)
+      (doinstruct :cdr (secd-registers :stack '((1 2 3))))   => (fstack-is '(2 3)))
 
 (fact "about binary built-ins"
-      (doinstruct :cons (secd-registers :stack '(1 (2 3))))
-      => (secd-registers :stack '((1 2 3)))
-
-      (doinstruct :add (secd-registers :stack '(1 1)))
-      => (secd-registers :stack '(2))
-
-      (doinstruct :sub (secd-registers :stack '(1 1)))
-      => (secd-registers :stack '(0))
-
-      (doinstruct :mty (secd-registers :stack '(2 2)))
-      => (secd-registers :stack '(4)))
+      (doinstruct :cons (secd-registers :stack '(1 (2 3)))) => (fstack-is '(1 2 3))
+      (doinstruct :add (secd-registers :stack '(1 1))) => (fstack-is 2)
+      (doinstruct :sub (secd-registers :stack '(1 1))) => (fstack-is 0)
+      (doinstruct :mty (secd-registers :stack '(2 2))) => (fstack-is 4))
 
 (fact "about if-then-else instructions"
       (let [truthy-sel (secd-registers :stack '(:truthy)
@@ -72,14 +57,13 @@
             falsey-sel (secd-registers :stack '(false)
                                        :code '(:for-true :for-false :rest))]
 
-        (doinstruct :sel truthy-sel)
-        => (secd-registers :code :for-true :dump '((:rest)))
+        (doinstruct :sel truthy-sel) => (comp (code-is :for-true)
+                                              (dump-is '((:rest))))
 
-        (doinstruct :sel falsey-sel)
-        => (secd-registers :code :for-false :dump '((:rest))))
+        (doinstruct :sel falsey-sel) => (comp (code-is :for-false)
+                                              (dump-is '((:rest)))))
 
-      (doinstruct :join (secd-registers :dump '((:dumped))))
-      => (secd-registers :code '(:dumped)))
+      (doinstruct :join (secd-registers :dump '((:dumped)))) => (code-is '(:dumped)))
 
 (fact "about :ldf instruction"
       (doinstruct :ldf (secd-registers :code '(:fn-instructions) :env '(:context)))
@@ -106,9 +90,8 @@
                            :dump nil)))
 
 (fact "about :dum instruction"
-      (doinstruct :dum (secd-registers)) => (secd-registers :env '(nil))
-      (doinstruct :dum (secd-registers :env '(1 2 3)))
-      => (secd-registers :env '(nil 1 2 3)))
+      (doinstruct :dum (secd-registers)) => (env-is '(nil))
+      (doinstruct :dum (secd-registers :env '(1 2 3))) => (env-is '(nil 1 2 3)))
 
 (fact "about do-secd* termination"
       (do-secd* []) => nil?
@@ -121,10 +104,7 @@
       (do-secd* [:ldc 5 :ldc 5 :div]) => (fstack-is 1))
 
 (fact "about do-secd* consing"
-      (do-secd* [:nil
-                 :ldc 1 :cons
-                 :ldc 2 :cons])
-      => (fstack-is '(2 1)))
+      (do-secd* [:nil :ldc 1 :cons :ldc 2 :cons]) => (fstack-is '(2 1)))
 
 (fact "about do-secd* if-then-else"
       ;; 5 + (if (atom :an-atom) then 1 else 2)
