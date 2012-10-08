@@ -31,12 +31,12 @@
 (definstruct :ldc {:keys [stack code] :as registers}
   (assoc registers
     :stack (cons (peek code) stack)
-    :code (pop code)))
+    :code (rest code)))
 
 (definstruct :ld {:keys [stack env code] :as registers}
   (assoc registers
-    :stack (cons (get-in env (peek code) ::unbound) stack)
-    :code (pop code)))
+    :stack (cons (get-in env (first code) ::unbound) stack)
+    :code (rest code)))
 
 ;; Support for built-in functions
 
@@ -47,7 +47,7 @@
   `(definstruct ~op registers#
      (let [stack# (:stack registers#)]
        (assoc registers#
-         :stack (cons (~f (peek stack#)) (pop stack#))))))
+         :stack (cons (~f (first stack#)) (rest stack#))))))
 
 (defunary :atom (complement coll?))
 (defunary :car first)
@@ -71,37 +71,37 @@
 ;; If-Then-Else instructions
 
 (definstruct :sel {:keys [stack code dump] :as registers}
-  (let [test (peek stack)
-        [then else & rest] code
+  (let [test (first stack)
+        [then else & more] code
         result (if (not (false? test)) then else)]
     (assoc registers
-      :stack (pop stack)
+      :stack (rest stack)
       :code result
-      :dump (cons rest dump))))
+      :dump (cons more dump))))
 
 (definstruct :join {:keys [code dump] :as registers}
   (assoc registers
-    :code (peek dump)
-    :dump (pop dump)))
+    :code (first dump)
+    :dump (rest dump)))
 
 ;; Non-recursive function instructions
 
 (definstruct :ldf {:keys [code env stack] :as registers}
   (assoc registers
-    :stack (cons [(peek code) env] stack)
-    :code (pop code)))
+    :stack (cons [(first code) env] stack)
+    :code (rest code)))
 
 (definstruct :ap {:keys [stack env code dump]}
-  (let [[closure args & rest] stack
+  (let [[closure args & more] stack
         [function context] closure]
     (secd-registers :env (cons args context)
                     :code function
-                    :dump (concat [rest env code] dump))))
+                    :dump (concat [more env code] dump))))
 
 (definstruct :rtn {:keys [stack env code dump] :as registers}
   (let [[s e c & d] dump]
     (assoc registers
-      :stack (cons (peek stack) s)
+      :stack (cons (first stack) s)
       :env e
       :code c
       :dump d)))
@@ -117,6 +117,6 @@
   (if-let [code (and (seq code) (into () (reverse code)))]
     (loop [registers (secd-registers :code code)]
       (if-let [instruction (and (seq (:code registers))
-                                (peek (:code registers)))]
-        (recur (doinstruct instruction (update-in registers [:code] pop)))
+                                (first (:code registers)))]
+        (recur (doinstruct instruction (update-in registers [:code] rest)))
         registers))))
