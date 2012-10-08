@@ -111,12 +111,13 @@
       (do-secd* [:ldc 5 :ldc 5 :mult]) => (fstack-is 25)
       (do-secd* [:ldc 5 :ldc 5 :div]) => (fstack-is 1))
 
-(fact "about do-secd*"
+(fact "about do-secd* consing"
       (do-secd* [:nil
                  :ldc 1 :cons
                  :ldc 2 :cons])
-      => (fstack-is '(2 1))
+      => (fstack-is '(2 1)))
 
+(fact "about do-secd* if-then-else"
       ;; 5 + (if (atom :an-atom) then 1 else 2)
       (do-secd* [:ldc 5
                  :ldc :an-atom
@@ -138,3 +139,12 @@
                  :ldc 10
                  :add])
       => (fstack-is 10))
+
+(fact "about do-secd* fn application"
+      ;; let f(x,y)=x+y in f(2*3, 6-4)
+      (do-secd* [:nil
+                :ldc 4 :ldc 6 :sub :cons
+                :ldc 3 :ldc 2 :mult :cons
+                :ldf [:ld [0 1] :ld [0 0] :add :rtn]
+                :ap])
+      => (fstack-is 8))
