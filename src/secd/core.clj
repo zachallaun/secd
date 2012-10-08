@@ -30,7 +30,7 @@
 
 (definstruct :ldc {:keys [stack code] :as registers}
   (assoc registers
-    :stack (cons (peek code) stack)
+    :stack (cons (first code) stack)
     :code (rest code)))
 
 (definstruct :ld {:keys [stack env code] :as registers}
