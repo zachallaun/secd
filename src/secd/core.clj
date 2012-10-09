@@ -1,4 +1,5 @@
-(ns secd.core)
+(ns secd.core
+  (:require [secd.util :as util]))
 
 (defn secd-registers
   [& {:keys [stack env code dump] :as registers}]
