@@ -15,12 +15,6 @@
         (and (pred (selector structure)) structure)
         (and (= pred (selector structure)) structure)))))
 
-(def stack-is (structure-checker (comp deref :stack)))
-(def fstack-is (structure-checker (comp first deref :stack)))
-(def env-is (structure-checker (comp deref :env)))
-(def code-is (structure-checker (comp deref :code)))
-(def dump-is (structure-checker (comp deref :dump)))
-
 (defn map-similar-to
   "Returns a function that assesses similarity. Assumes coll and coll2 to be
   an associative structure with values that may be atoms. Two atoms are similar

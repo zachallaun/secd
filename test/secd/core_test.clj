@@ -3,6 +3,12 @@
         secd.test-helpers
         secd.core))
 
+(def stack-is (structure-checker (comp deref :stack)))
+(def fstack-is (structure-checker (comp first deref :stack)))
+(def env-is (structure-checker (comp deref :env)))
+(def code-is (structure-checker (comp deref :code)))
+(def dump-is (structure-checker (comp deref :dump)))
+
 (fact "about SECD register defaults"
       (secd-registers) => (map-similar-to {:stack (atom ()) :env (atom ())
                                            :code (atom ()) :dump (atom ())})
