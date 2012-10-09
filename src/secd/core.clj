@@ -32,14 +32,9 @@
     :stack (cons (first code) stack)
     :code (rest code)))
 
-(defn nnth
-  "(nnth coll 0 1) => (nth (nth coll 0) 1)"
-  [coll n1 n2]
-  (nth (nth coll n1) n2))
-
 (definstruct :ld {:keys [stack env code] :as registers}
   (assoc registers
-    :stack (cons (apply nnth env (first code)) stack)
+    :stack (cons (apply util/nnth env (first code)) stack)
     :code (rest code)))
 
 ;; Support for built-in functions
