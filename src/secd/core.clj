@@ -1,13 +1,15 @@
 (ns secd.core
   (:require [secd.util :as util]))
 
+(def register (constantly ()))
+
+(defn atomify [x]
+  (or (util/atom? x) (atom x)))
+
 (defn secd-registers
   [& {:keys [stack env code dump] :as registers}]
-  (let [defaults {:stack ()
-                  :env []
-                  :code ()
-                  :dump ()}]
-    (merge defaults registers)))
+  (let [defaults (zipmap [:stack :env :code :dump] (repeatedly 4 register))]
+    (util/fmap atomify (merge defaults registers))))
 
 ;; SECD Basic Instruction Set
 
@@ -25,17 +27,18 @@
 ;; LD   ::  s e (LD (i.j).c) d => ((locate (i.j) e).s) e c d
 
 (definstruct :nil {:keys [stack] :as registers}
-  (assoc registers :stack (cons nil stack)))
+  (swap! stack #(cons nil %))
+  registers)
 
 (definstruct :ldc {:keys [stack code] :as registers}
-  (assoc registers
-    :stack (cons (first code) stack)
-    :code (rest code)))
+  (swap! stack #(cons (first @code) %))
+  (swap! code rest)
+  registers)
 
 (definstruct :ld {:keys [stack env code] :as registers}
-  (assoc registers
-    :stack (cons (apply util/nnth env (first code)) stack)
-    :code (rest code)))
+  (swap! stack #(cons (apply util/nnth @env (first @code)) %))
+  (swap! code rest)
+  registers)
 
 ;; Support for built-in functions
 
@@ -45,8 +48,8 @@
   [op f]
   `(definstruct ~op registers#
      (let [stack# (:stack registers#)]
-       (assoc registers#
-         :stack (cons (~f (first stack#)) (rest stack#))))))
+       (swap! stack# #(cons (~f (first %)) (rest %)))
+       registers#)))
 
 (defunary :atom (complement coll?))
 (defunary :null nil?)
@@ -58,9 +61,9 @@
 (defmacro defbinary
   [op f]
   `(definstruct ~op registers#
-     (let [[a# b# & stack#] (:stack registers#)]
-       (assoc registers#
-         :stack (cons (~f a# b#) stack#)))))
+     (let [[a# b# & stack#] @(:stack registers#)]
+       (reset! (:stack registers#) (cons (~f a# b#) stack#))
+       registers#)))
 
 (defbinary :cons cons)
 (defbinary :add +)
@@ -71,40 +74,42 @@
 ;; If-Then-Else instructions
 
 (definstruct :sel {:keys [stack code dump] :as registers}
-  (let [test (first stack)
-        [then else & more] code
+  (let [test (first @stack)
+        [then else & more] @code
         result (if (not (false? test)) then else)]
-    (assoc registers
-      :stack (rest stack)
-      :code result
-      :dump (cons more dump))))
+    (swap! stack rest)
+    (reset! code result)
+    (swap! dump #(cons more %))
+    registers))
 
 (definstruct :join {:keys [code dump] :as registers}
-  (assoc registers
-    :code (first dump)
-    :dump (rest dump)))
+  (reset! code (first @dump))
+  (swap! dump rest)
+  registers)
 
 ;; Non-recursive function instructions
 
 (definstruct :ldf {:keys [code env stack] :as registers}
-  (assoc registers
-    :stack (cons [(first code) env] stack)
-    :code (rest code)))
+  (swap! stack #(cons [(first @code) @env] %))
+  (swap! code rest)
+  registers)
 
-(definstruct :ap {:keys [stack env code dump]}
-  (let [[closure args & more] stack
+(definstruct :ap {:keys [stack env code dump] :as registers}
+  (let [[closure args & more] @stack
         [function context] closure]
-    (secd-registers :env (cons args context)
-                    :code function
-                    :dump (concat [more env code] dump))))
+    (swap! dump #(concat [more @env @code] %))
+    (reset! env (cons args context))
+    (reset! code function)
+    (reset! stack (register))
+    registers))
 
 (definstruct :rtn {:keys [stack env code dump] :as registers}
-  (let [[s e c & d] dump]
-    (assoc registers
-      :stack (cons (first stack) s)
-      :env e
-      :code c
-      :dump d)))
+  (let [[s e c & d] @dump]
+    (swap! stack #(cons (first %) s))
+    (reset! env e)
+    (reset! code c)
+    (reset! dump d)
+    registers))
 
 ;; Recursive function instructions
 ;; DUM :: s e (DUM.c) d => s (nil.e) c d
@@ -112,14 +117,16 @@
 ;;     => nil (rplaca((nil.e),v).e) f (s e c.d)
 
 (definstruct :dum {:keys [env] :as registers}
-  (assoc registers :env (cons nil env)))
+  (swap! env #(cons nil %))
+  registers)
 
 ;; TODO: RAP instruction, which requires mutable registers (rplaca)
 
 (defn do-secd* [code]
   (if-let [code (and (seq code) (into () (reverse code)))]
     (loop [registers (secd-registers :code code)]
-      (if-let [instruction (and (seq (:code registers))
-                                (first (:code registers)))]
-        (recur (doinstruct instruction (update-in registers [:code] rest)))
+      (if-let [instruction (and (seq @(:code registers))
+                                (first @(:code registers)))]
+        (do (swap! (:code registers) rest)
+            (recur (doinstruct instruction registers)))
         registers))))

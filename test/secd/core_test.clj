@@ -4,9 +4,11 @@
         secd.core))
 
 (fact "about SECD register defaults"
-      (secd-registers) => {:stack () :env [] :code () :dump ()}
-      (secd-registers :stack '(:a :b :c)) => {:stack '(:a :b :c)
-                                              :env () :code () :dump ()})
+      (secd-registers) => (map-similar-to {:stack (atom ()) :env (atom ())
+                                           :code (atom ()) :dump (atom ())})
+      (secd-registers :stack '(:a :b :c))
+      => (map-similar-to {:stack (atom '(:a :b :c)) :env (atom ())
+                          :code (atom ()) :dump (atom ())}))
 
 (fact "about :nil instruction"
       (doinstruct :nil (secd-registers)) => (fstack-is nil))
@@ -55,16 +57,18 @@
 
 (fact "about :ldf instruction"
       (doinstruct :ldf (secd-registers :code '(:fn-instructions) :env '(:context)))
-      => (secd-registers :stack '([:fn-instructions (:context)])
-                         :env '(:context)))
+      => (map-similar-to
+          (secd-registers :stack '([:fn-instructions (:context)])
+                          :env '(:context))))
 
 (fact "about :ap instruction"
       (let [registers (secd-registers :stack '([:fn-instructions (:context)]
                                                  :args :rest))]
         (doinstruct :ap registers)
-        => (secd-registers :env '(:args :context)
-                           :code :fn-instructions
-                           :dump '((:rest) () ()))))
+        => (map-similar-to
+            (secd-registers :env '(:args :context)
+                            :code :fn-instructions
+                            :dump '((:rest) () ())))))
 
 (fact "about :rtn instruction"
       (let [registers (secd-registers :stack '(:kept :discarded)
@@ -72,10 +76,11 @@
                                       :code '(:discarded)
                                       :dump '((:rest) :env :code))]
         (doinstruct :rtn registers)
-        => (secd-registers :stack '(:kept :rest)
-                           :env :env
-                           :code :code
-                           :dump nil)))
+        => (map-similar-to
+            (secd-registers :stack '(:kept :rest)
+                            :env :env
+                            :code :code
+                            :dump nil))))
 
 (fact "about :dum instruction"
       (doinstruct :dum (secd-registers)) => (env-is '(nil))
@@ -83,7 +88,7 @@
 
 (fact "about do-secd* termination"
       (do-secd* []) => nil?
-      (do-secd* [:nil]) => (fstack-is nil))
+      (do-secd* [:nil]) => (fstack-is nil?))
 
 (fact "about do-secd* math"
       (do-secd* [:ldc 1 :ldc 2 :add]) => (fstack-is 3)
