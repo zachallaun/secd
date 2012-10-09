@@ -107,13 +107,14 @@
       :dump d)))
 
 ;; Recursive function instructions
+;; DUM :: s e (DUM.c) d => s (nil.e) c d
+;; RAP :: ((f.(nil.e)) v.s) (nil.e) (RAP.c) d
+;;     => nil (rplaca((nil.e),v).e) f (s e c.d)
 
 (definstruct :dum {:keys [env] :as registers}
   (assoc registers :env (cons nil env)))
 
-
-
-;; TODO: recursive apply (:rap)
+;; TODO: RAP instruction, which requires mutable registers (rplaca)
 
 (defn do-secd* [code]
   (if-let [code (and (seq code) (into () (reverse code)))]
