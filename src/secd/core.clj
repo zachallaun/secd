@@ -1,7 +1,5 @@
 (ns secd.core)
 
-;; (defrecord SECDRegisters [f-pointer stack env code dump])
-
 (defn secd-registers
   [& {:keys [stack env code dump] :as registers}]
   (let [defaults {:stack ()
