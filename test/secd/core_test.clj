@@ -2,18 +2,23 @@
   (:use midje.sweet
         secd.core))
 
-(defn register-checker [selector]
-  (fn [pred]
-    (fn [registers]
-      (if (fn? pred)
-        (and (pred (selector registers)) registers)
-        (and (= pred (selector registers)) registers)))))
+(defn structure-checker [selector]
+  "Returns a function used to generate higher-order functions that can act as
+  composable predicates that verify attributes of some data structure.
 
-(def stack-is (register-checker :stack))
-(def fstack-is (register-checker (comp first :stack)))
-(def env-is (register-checker :env))
-(def code-is (register-checker :code))
-(def dump-is (register-checker :dump))
+  ex. (def stack-is (structure-checker :stack))
+      ((stack-is []) {:stack []})"
+  (fn [pred]
+    (fn [structure]
+      (if (fn? pred)
+        (and (pred (selector structure)) structure)
+        (and (= pred (selector structure)) structure)))))
+
+(def stack-is (structure-checker :stack))
+(def fstack-is (structure-checker (comp first :stack)))
+(def env-is (structure-checker :env))
+(def code-is (structure-checker :code))
+(def dump-is (structure-checker :dump))
 
 (fact "about SECD register defaults"
       (secd-registers) => {:stack () :env [] :code () :dump ()}
