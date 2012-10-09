@@ -17,28 +17,41 @@
   (fn [op registers] op))
 
 (defmacro definstruct
+  "Defines an instruction that executes change on SECD registers.
+
+  A single binding for the registers is expected. Destructured values will be
+  bound to the actual register atoms.
+
+  The body of a definstruct is expected to return a map of register-names to
+  update values that will be used to update the registers. The full set of
+  registers will always be returned.
+
+  ex.
+    (definstruct :nil {:keys [stack] :as regs}
+      {:stack (cons nil @stack)})"
   [op register-binding & body]
-  `(defmethod doinstruct ~op [op# ~register-binding]
-     ~@body))
+  (let [registers (or (:as register-binding) (gensym "registers"))
+        register-binding (assoc register-binding :as registers)]
+    `(defmethod doinstruct ~op [op# ~register-binding]
+       (let [updates# (do ~@body)]
+         (assert (map? updates#) (str ~op ": The body of a definstruct must return a map of register updates."))
+         (util/reset-values! ~registers updates#)))))
 
 ;; Access objects and push values to the stack:
 ;; NIL  ::  s e (NIL.c) d      => (nil.s) e c d
 ;; LDC  ::  s e (LDC x.c) d    => (x.s) e c d
 ;; LD   ::  s e (LD (i.j).c) d => ((locate (i.j) e).s) e c d
 
-(definstruct :nil {:keys [stack] :as registers}
-  (swap! stack #(cons nil %))
-  registers)
+(definstruct :nil {:keys [stack]}
+  {:stack (cons nil @stack)})
 
-(definstruct :ldc {:keys [stack code] :as registers}
-  (swap! stack #(cons (first @code) %))
-  (swap! code rest)
-  registers)
+(definstruct :ldc {:keys [stack code]}
+  {:stack (cons (first @code) @stack)
+   :code (rest @code)})
 
-(definstruct :ld {:keys [stack env code] :as registers}
-  (swap! stack #(cons (apply util/nnth @env (first @code)) %))
-  (swap! code rest)
-  registers)
+(definstruct :ld {:keys [stack env code]}
+  {:stack (cons (apply util/nnth @env (first @code)) @stack)
+   :code (rest @code)})
 
 ;; Support for built-in functions
 
@@ -46,10 +59,8 @@
 
 (defmacro defunary
   [op f]
-  `(definstruct ~op registers#
-     (let [stack# (:stack registers#)]
-       (swap! stack# #(cons (~f (first %)) (rest %)))
-       registers#)))
+  `(definstruct ~op {:keys [~'stack]}
+     {:stack (cons (~f (first @~'stack)) (rest @~'stack))}))
 
 (defunary :atom (complement coll?))
 (defunary :null nil?)
@@ -60,10 +71,9 @@
 
 (defmacro defbinary
   [op f]
-  `(definstruct ~op registers#
-     (let [[a# b# & stack#] @(:stack registers#)]
-       (reset! (:stack registers#) (cons (~f a# b#) stack#))
-       registers#)))
+  `(definstruct ~op {stack-a# :stack}
+     (let [[a# b# & stack#] @stack-a#]
+       {:stack (cons (~f a# b#) stack#)})))
 
 (defbinary :cons cons)
 (defbinary :add +)
@@ -73,52 +83,44 @@
 
 ;; If-Then-Else instructions
 
-(definstruct :sel {:keys [stack code dump] :as registers}
+(definstruct :sel {:keys [stack code dump]}
   (let [test (first @stack)
         [then else & more] @code
         result (if (not (false? test)) then else)]
-    (swap! stack rest)
-    (reset! code result)
-    (swap! dump #(cons more %))
-    registers))
+    {:stack (rest @stack)
+     :code result
+     :dump (cons more @dump)}))
 
-(definstruct :join {:keys [code dump] :as registers}
-  (reset! code (first @dump))
-  (swap! dump rest)
-  registers)
+(definstruct :join {:keys [code dump]}
+  {:code (first @dump)
+   :dump (rest @dump)})
 
 ;; Non-recursive function instructions
 
-(definstruct :ldf {:keys [code env stack] :as registers}
-  (swap! stack #(cons [(first @code) @env] %))
-  (swap! code rest)
-  registers)
+(definstruct :ldf {:keys [code env stack]}
+  {:stack (cons [(first @code) @env] @stack)
+   :code (rest @code)})
 
-(definstruct :ap {:keys [stack env code dump] :as registers}
+(definstruct :ap {:keys [stack env code dump]}
   (let [[closure args & more] @stack
         [function context] closure]
-    (swap! dump #(concat [more @env @code] %))
-    (reset! env (cons args context))
-    (reset! code function)
-    (reset! stack (register))
-    registers))
+    {:stack (register)
+     :env (cons args context)
+     :code function
+     :dump (concat [more @env @code] @dump)}))
 
-(definstruct :rtn {:keys [stack env code dump] :as registers}
+(definstruct :rtn {:keys [stack env code dump]}
   (let [[s e c & d] @dump]
-    (swap! stack #(cons (first %) s))
-    (reset! env e)
-    (reset! code c)
-    (reset! dump d)
-    registers))
+    {:stack (cons (first @stack) s)
+     :env e :code c :dump d}))
 
 ;; Recursive function instructions
 ;; DUM :: s e (DUM.c) d => s (nil.e) c d
 ;; RAP :: ((f.(nil.e)) v.s) (nil.e) (RAP.c) d
 ;;     => nil (rplaca((nil.e),v).e) f (s e c.d)
 
-(definstruct :dum {:keys [env] :as registers}
-  (swap! env #(cons nil %))
-  registers)
+(definstruct :dum {:keys [env]}
+  {:env (cons nil @env)})
 
 ;; TODO: RAP instruction, which requires mutable registers (rplaca)
 

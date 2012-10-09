@@ -10,6 +10,13 @@
       => (map-similar-to {:stack (atom '(:a :b :c)) :env (atom ())
                           :code (atom ()) :dump (atom ())}))
 
+(fact "about definstruct return value assertion"
+      (definstruct :foo {} :foo)
+      (doinstruct :foo (secd-registers)) => (throws AssertionError)
+
+      (definstruct :bar {} {})
+      (doinstruct :bar (secd-registers)) => truthy)
+
 (fact "about :nil instruction"
       (doinstruct :nil (secd-registers)) => (fstack-is nil))
 
@@ -125,8 +132,8 @@
 (fact "about do-secd* fn application"
       ;; let f(x,y)=x+y in f(2*3, 6-4)
       (do-secd* [:nil
-                :ldc 4 :ldc 6 :sub :cons
-                :ldc 3 :ldc 2 :mty :cons
-                :ldf [:ld [0 1] :ld [0 0] :add :rtn]
-                :ap])
+                 :ldc 4 :ldc 6 :sub :cons
+                 :ldc 3 :ldc 2 :mty :cons
+                 :ldf [:ld [0 1] :ld [0 0] :add :rtn]
+                 :ap])
       => (fstack-is 8))
