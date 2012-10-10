@@ -30,6 +30,10 @@
       (let [registers (secd-registers :code '(:a))]
         (doinstruct :ldc registers) => (fstack-is :a)))
 
+(fact "about locate"
+      (locate [[:v1]] 0 0) => :v1
+      (locate [(atom [:v1])] 0 0) => :v1)
+
 (fact "about :ld instruction"
       (doinstruct :ld (secd-registers :code '([0 0]) :env [[:v1]]))
       => (comp (fstack-is :v1) (env-is [[:v1]]))

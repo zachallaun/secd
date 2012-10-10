@@ -49,8 +49,15 @@
   {:stack (cons (first @code) @stack)
    :code (rest @code)})
 
+(defn locate
+  [env x y]
+  (let [inner (nth env x)
+        derefed (if (util/atom? inner)
+                  @inner inner)]
+    (nth derefed y)))
+
 (definstruct :ld {:keys [stack env code]}
-  {:stack (cons (apply util/nnth @env (first @code)) @stack)
+  {:stack (cons (apply locate @env (first @code)) @stack)
    :code (rest @code)})
 
 ;; Support for built-in functions
