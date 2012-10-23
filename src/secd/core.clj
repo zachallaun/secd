@@ -34,7 +34,6 @@
         register-binding (assoc register-binding :as registers)]
     `(defmethod doinstruct ~op [op# ~register-binding]
        (let [updates# (do ~@body)]
-         (assert (map? updates#) (str ~op ": The body of a definstruct must return a map of register updates."))
          (util/reset-values! ~registers updates#)))))
 
 ;; Access objects and push values to the stack:

@@ -16,9 +16,10 @@
       => (map-similar-to {:stack (atom '(:a :b :c)) :env (atom ())
                           :code (atom ()) :dump (atom ())}))
 
-(fact "about definstruct return value assertion"
+(fact "about definstruct return value"
+      ;; definstruct expects the return value of the body to be a map
       (definstruct :foo {} :foo)
-      (doinstruct :foo (secd-registers)) => (throws AssertionError)
+      (doinstruct :foo (secd-registers)) => (throws IllegalArgumentException)
 
       (definstruct :bar {} {})
       (doinstruct :bar (secd-registers)) => truthy)
