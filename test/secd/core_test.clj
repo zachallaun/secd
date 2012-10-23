@@ -37,13 +37,13 @@
 
 (fact "about :ld instruction"
       (doinstruct :ld (secd-registers :code '([0 0]) :env [[:v1]]))
-      => (comp (fstack-is :v1) (env-is [[:v1]]))
+      => (andfn (fstack-is :v1) (env-is [[:v1]]))
 
       (doinstruct :ld (secd-registers :code '([0 0]) :env '[(:v1)]))
-      => (comp (fstack-is :v1) (env-is '[(:v1)]))
+      => (andfn (fstack-is :v1) (env-is '[(:v1)]))
 
       (doinstruct :ld (secd-registers :code '([1 1]) :env '[() (:v1 :v2)]))
-      => (comp (fstack-is :v2) (env-is '[() (:v1 :v2)])))
+      => (andfn (fstack-is :v2) (env-is '[() (:v1 :v2)])))
 
 (fact "about unary built-ins"
       (doinstruct :atom (secd-registers :stack '(:a)))       => (fstack-is true)
@@ -78,11 +78,11 @@
             falsey-sel (secd-registers :stack '(false)
                                        :code '(:for-true :for-false :rest))]
 
-        (doinstruct :sel truthy-sel) => (comp (code-is :for-true)
-                                              (dump-is '((:rest))))
+        (doinstruct :sel truthy-sel) => (andfn (code-is :for-true)
+                                               (dump-is '((:rest))))
 
-        (doinstruct :sel falsey-sel) => (comp (code-is :for-false)
-                                              (dump-is '((:rest)))))
+        (doinstruct :sel falsey-sel) => (andfn (code-is :for-false)
+                                               (dump-is '((:rest)))))
 
       (doinstruct :join (secd-registers :dump '((:dumped)))) => (code-is '(:dumped)))
 

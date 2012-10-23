@@ -15,6 +15,19 @@
         (and (pred (selector structure)) structure)
         (and (= pred (selector structure)) structure)))))
 
+(defn andfn
+  "function-and. Returns a function that threads a set of arguments through a
+  series of functions until one returns false."
+  [& fns]
+  (letfn [(thread [[f & more] & args]
+            (let [result (apply f args)]
+              (if-not result
+                false
+                (if (seq more)
+                  (apply thread more args)
+                  result))))]
+    (partial thread fns)))
+
 (defn map-similar-to
   "Returns a function that assesses similarity. Assumes coll and coll2 to be
   an associative structure with values that may be atoms. Two atoms are similar
@@ -40,3 +53,8 @@
       ((map-similar-to {:k (atom :v)}) {:k (atom :v)}) => truthy
       ((map-similar-to {:k :v})        {:k (atom :v)}) => truthy
       ((map-similar-to {:k :v})        {:k :v :k2 :v2}) => falsey)
+
+(fact "about andfn"
+      ((andfn odd? (partial + 1)) 3) => 4
+      ((andfn #(< % 1) #(nth [:sole] %)) 0) => :sole
+      ((andfn #(< % 1) #(nth [:sole] %)) 1) => falsey)
