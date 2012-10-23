@@ -25,10 +25,10 @@
     {:pre [(map? coll2)]}
     (and (every? (set (keys coll)) (keys coll2))
          (every? (fn [[k a]]
-                   (let [v (get coll2 k)]
-                     (if (and (atom? a) (atom? v))
-                       (= @a @v)
-                       (= a v))))
+                   (let [v (get coll2 k)
+                         v (if (atom? v) @v v)
+                         a (if (atom? a) @a a)]
+                     (= a v)))
                  coll))))
 
 (fact "about map-similar-to"
@@ -38,5 +38,5 @@
       ((map-similar-to {})             {}) => truthy
       ((map-similar-to {:k :v})        {:k :v}) => truthy
       ((map-similar-to {:k (atom :v)}) {:k (atom :v)}) => truthy
-      ((map-similar-to {:k :v})        {:k (atom :v)}) => falsey
+      ((map-similar-to {:k :v})        {:k (atom :v)}) => truthy
       ((map-similar-to {:k :v})        {:k :v :k2 :v2}) => falsey)
