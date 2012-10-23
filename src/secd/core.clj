@@ -87,6 +87,11 @@
 (defbinary :sub -)
 (defbinary :mty *)
 (defbinary :div /)
+(defbinary :eq =)
+(defbinary :gt >)
+(defbinary :lt <)
+(defbinary :gte >=)
+(defbinary :lte <=)
 
 ;; If-Then-Else instructions
 
