@@ -87,14 +87,12 @@
       (doinstruct :join (secd-registers :dump '((:dumped)))) => (code-is '(:dumped)))
 
 (fact "about :ldf instruction"
-      ;; TODO: make this test suck less terribly
-      (let [env (atom '(:context))]
-        (doinstruct :ldf (secd-registers :code '(:fn-instructions) :env env))
-        => (fn [m]
-             (and (= env (:env m))
-                  (let [closure (first @(:stack m))]
-                    (and (= :fn-instructions (first closure))
-                         (= env (second closure))))))))
+      (let [env-atom (atom '(:context))]
+        (doinstruct :ldf (secd-registers :code '(:fn-instructions) :env env-atom))
+        => (fn [{:keys [stack env code dump]}]
+             (and (= env-atom (-> stack deref first second))
+                  (= env-atom env)
+                  (not (seq @code))))))
 
 (fact "about :ap instruction"
       (let [registers (secd-registers :stack `([:fn-instructions ~(atom '(:context))]
