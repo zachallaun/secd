@@ -160,6 +160,9 @@
       (do-secd* [:nil
                  :ldc 4 :ldc 6 :sub :cons
                  :ldc 3 :ldc 2 :mty :cons
-                 :ldf [:ld [0 1] :ld [0 0] :add :rtn]
+                 :ldf [:ld [0 1]
+                       :ld [0 0]
+                       :add
+                       :rtn]
                  :ap])
       => (fstack-is 8))
