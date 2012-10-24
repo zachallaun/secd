@@ -135,11 +135,16 @@
 
 ;; TODO: RAP instruction, which requires mutable registers (rplaca)
 
-(defn do-secd* [code]
-  (if-let [code (and (seq code) (into () (reverse code)))]
-    (loop [registers (secd-registers :code code)]
-      (if-let [instruction (and (seq @(:code registers))
-                                (first @(:code registers)))]
-        (do (swap! (:code registers) rest)
-            (recur (doinstruct instruction registers)))
-        registers))))
+(defn do-secd*
+  ([code]
+     ;; This is a pretty ugly kludge to just "go till :code is empty"
+     (do-secd* -1 code))
+  ([n code]
+     (if-let [code (and (seq code) (into () (reverse code)))]
+       (loop [n n registers (secd-registers :code code)]
+         (if-let [instruction (and (not= n 0)
+                                   (seq @(:code registers))
+                                   (first @(:code registers)))]
+           (do (swap! (:code registers) rest)
+               (recur (dec n) (doinstruct instruction registers)))
+           registers)))))

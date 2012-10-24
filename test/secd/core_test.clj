@@ -119,6 +119,15 @@
       (doinstruct :dum (secd-registers)) => (env-is '(nil))
       (doinstruct :dum (secd-registers :env '(1 2 3))) => (env-is '(nil 1 2 3)))
 
+
+(fact "about do-secd* optional n-instructions argument"
+      (do-secd* 1 [:nil :nil :nil]) => (andfn (stack-is [nil])
+                                              (code-is [:nil :nil]))
+      (do-secd* 2 [:nil :nil :nil]) => (andfn (stack-is [nil nil])
+                                              (code-is [:nil]))
+      (do-secd* 3 [:nil :nil :nil]) => (andfn (stack-is [nil nil nil])
+                                              (code-is [])))
+
 (fact "about do-secd* termination"
       (do-secd* []) => nil?
       (do-secd* [:nil]) => (fstack-is nil?))
