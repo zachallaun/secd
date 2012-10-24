@@ -133,7 +133,14 @@
 (definstruct :dum {:keys [env]}
   {:env (cons (atom ()) @env)})
 
-;; TODO: RAP instruction, which requires mutable registers (rplaca)
+(definstruct :rap {:keys [stack env code dump]}
+  (let [[closure args & more] @stack
+        [function context] closure
+        old-env @env]
+    (reset! (first @env) args)
+    {:stack (register)
+     :code function
+     :dump (concat [more old-env @code] @dump)}))
 
 (defn do-secd*
   ([code]

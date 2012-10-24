@@ -121,6 +121,20 @@
                    (and (instance? clojure.lang.Atom a)
                         (= '(1 2 3) more)))))
 
+;; midje wants to print the actual value of the registers, and because
+;; they're cyclic, you have to dynamically bind *print-level*
+(binding [*print-level* 5]
+  (fact "about :rap instruction"
+        (let [dum (atom '())
+              registers
+              (secd-registers :stack [[:fn [dum]] [:arg] :rest]
+                              :env [dum])]
+          (doinstruct :rap registers)
+          => (andfn (stack-is ())
+                    (env-is [dum])
+                    (code-is :fn)
+                    (dump-is ['(:rest) [dum] ()])))))
+
 (fact "about do-secd* optional n-instructions argument"
       (do-secd* 1 [:nil :nil :nil]) => (andfn (stack-is [nil])
                                               (code-is [:nil :nil]))
@@ -176,3 +190,18 @@
                        :rtn]
                  :ap])
       => (fstack-is 8))
+
+(fact "about do-secd* recursive fn application"
+      ;; letrec f(x) = if x<1 then 0 else f(x-1) in f(3)
+      (do-secd* [:dum :nil
+                 :ldf [:ldc 1 :ld [0 0] :lt
+                       :sel
+                       [:ldc 0 :join]
+                       [:nil
+                        :ldc 1 :ld [0 0] :sub
+                        :cons
+                        :ld [1 0] :ap :join]
+                       :rtn]
+                 :cons
+                 :ldf [:nil :ldc 3 :cons :ld [0 0] :ap :rtn]
+                 :rap]) => (fstack-is 0))
