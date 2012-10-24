@@ -87,15 +87,13 @@
       (doinstruct :join (secd-registers :dump '((:dumped)))) => (code-is '(:dumped)))
 
 (fact "about :ldf instruction"
-      (let [env-atom (atom '(:context))]
-        (doinstruct :ldf (secd-registers :code '(:fn-instructions) :env env-atom))
-        => (fn [{:keys [stack env code dump]}]
-             (and (= env-atom (-> stack deref first second))
-                  (= env-atom env)
-                  (not (seq @code))))))
+      (doinstruct :ldf (secd-registers :code '(:fn-instructions) :env '(:context)))
+      => (map-similar-to
+          (secd-registers :stack '([:fn-instructions (:context)])
+                          :env '(:context))))
 
 (fact "about :ap instruction"
-      (let [registers (secd-registers :stack `([:fn-instructions ~(atom '(:context))]
+      (let [registers (secd-registers :stack '([:fn-instructions (:context)]
                                                  :args :rest))]
         (doinstruct :ap registers)
         => (map-similar-to

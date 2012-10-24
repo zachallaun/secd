@@ -109,14 +109,14 @@
 ;; Non-recursive function instructions
 
 (definstruct :ldf {:keys [code env stack]}
-  {:stack (cons [(first @code) env] @stack)
+  {:stack (cons [(first @code) @env] @stack)
    :code (rest @code)})
 
 (definstruct :ap {:keys [stack env code dump]}
   (let [[closure args & more] @stack
         [function context] closure]
     {:stack (register)
-     :env (cons args @context)
+     :env (cons args context)
      :code function
      :dump (concat [more @env @code] @dump)}))
 
