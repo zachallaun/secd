@@ -131,7 +131,7 @@
 ;;     => nil (rplaca((nil.e),v).e) f (s e c.d)
 
 (definstruct :dum {:keys [env]}
-  {:env (cons nil @env)})
+  {:env (cons (atom ()) @env)})
 
 ;; TODO: RAP instruction, which requires mutable registers (rplaca)
 

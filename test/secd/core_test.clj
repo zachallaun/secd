@@ -116,9 +116,12 @@
                             :dump nil))))
 
 (fact "about :dum instruction"
-      (doinstruct :dum (secd-registers)) => (env-is '(nil))
-      (doinstruct :dum (secd-registers :env '(1 2 3))) => (env-is '(nil 1 2 3)))
-
+      (doinstruct :dum (secd-registers)) => (env-is (fn [[a]]
+                                                      (instance? clojure.lang.Atom a)))
+      (doinstruct :dum (secd-registers :env '(1 2 3)))
+      => (env-is (fn [[a & more]]
+                   (and (instance? clojure.lang.Atom a)
+                        (= '(1 2 3) more)))))
 
 (fact "about do-secd* optional n-instructions argument"
       (do-secd* 1 [:nil :nil :nil]) => (andfn (stack-is [nil])
