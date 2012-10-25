@@ -89,7 +89,7 @@
 (definstruct :sel {:keys [stack code dump]}
   (let [test (first @stack)
         [then else & more] @code
-        result (if (true? test) then else)]
+        result (if-not (false? test) then else)]
     {:stack (rest @stack)
      :code result
      :dump (cons more @dump)}))
