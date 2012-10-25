@@ -11,8 +11,6 @@
   (let [defaults (zipmap [:stack :env :code :dump] (repeatedly 4 register))]
     (util/fmap atomify (merge defaults registers))))
 
-;; SECD Basic Instruction Set
-
 (defmulti doinstruct
   (fn [op registers] op))
 
@@ -36,14 +34,11 @@
        (let [updates# (do ~@body)]
          (util/reset-values! ~registers updates#)))))
 
-;; Access objects and push values to the stack:
-;; NIL  ::  s e (NIL.c) d      => (nil.s) e c d
-;; LDC  ::  s e (LDC x.c) d    => (x.s) e c d
-;; LD   ::  s e (LD (i.j).c) d => ((locate (i.j) e).s) e c d
-
+;; s e (NIL.c) d => (nil.s) e c d
 (definstruct :nil {:keys [stack]}
   {:stack (cons nil @stack)})
 
+;; s e (LDC x.c) d => (x.s) e c d
 (definstruct :ldc {:keys [stack code]}
   {:stack (cons (first @code) @stack)
    :code (rest @code)})
@@ -55,14 +50,12 @@
                   @inner inner)]
     (nth derefed y)))
 
+;; s e (LD [i j].c) d => ((locate e i j).s) e c d
 (definstruct :ld {:keys [stack env code]}
   {:stack (cons (apply locate @env (first @code)) @stack)
    :code (rest @code)})
 
-;; Support for built-in functions
-
-;; Unary functions
-
+;; (x.s) e (OP.c) d => ((OP x).s) e c d
 (defmacro defunary
   [op f]
   `(definstruct ~op {:keys [~'stack]}
@@ -73,8 +66,7 @@
 (defunary :car first)
 (defunary :cdr rest)
 
-;; Binary functions
-
+;; (x y.s) e (OP.c) d => ((OP x y).s) e c d
 (defmacro defbinary
   [op f]
   `(definstruct ~op {stack-a# :stack}
@@ -92,26 +84,27 @@
 (defbinary :gte >=)
 (defbinary :lte <=)
 
-;; If-Then-Else instructions
-
+;; (x.s) e (SEL then else.c) d => s e c? (c.d)
+;; where c? is (if x then else)
 (definstruct :sel {:keys [stack code dump]}
   (let [test (first @stack)
         [then else & more] @code
-        result (if (not (false? test)) then else)]
+        result (if (true? test) then else)]
     {:stack (rest @stack)
      :code result
      :dump (cons more @dump)}))
 
+;; s e (JOIN.c) (cr.d) => s e cr d
 (definstruct :join {:keys [code dump]}
   {:code (first @dump)
    :dump (rest @dump)})
 
-;; Non-recursive function instructions
-
+;; s e (LDF f.c) d => ([f e].s) e c d
 (definstruct :ldf {:keys [code env stack]}
   {:stack (cons [(first @code) @env] @stack)
    :code (rest @code)})
 
+;; ([f e'] v.s) e (AP.c) d => nil (v.e') f (s e c.d)
 (definstruct :ap {:keys [stack env code dump]}
   (let [[closure args & more] @stack
         [function context] closure]
@@ -120,19 +113,18 @@
      :code function
      :dump (concat [more @env @code] @dump)}))
 
+;; (x.z) e' (RTN.q) (s e c.d) => (x.s) e c d
 (definstruct :rtn {:keys [stack env code dump]}
   (let [[s e c & d] @dump]
     {:stack (cons (first @stack) s)
      :env e :code c :dump d}))
 
-;; Recursive function instructions
-;; DUM :: s e (DUM.c) d => s (nil.e) c d
-;; RAP :: ((f.(nil.e)) v.s) (nil.e) (RAP.c) d
-;;     => nil (rplaca((nil.e),v).e) f (s e c.d)
-
+;; s e (DUM.c) d => s (nil.e) c d
 (definstruct :dum {:keys [env]}
   {:env (cons (atom ()) @env)})
 
+;; ([f (nil.e)] v.s) (nil.e) (RAP.c) d =>
+;; nil (rplaca((nil.e), v).e) f (s e c.d)
 (definstruct :rap {:keys [stack env code dump]}
   (let [[closure args & more] @stack
         [function context] closure
