@@ -1,15 +1,10 @@
 (ns secd.core
   (:require [secd.util :as util]))
 
-(def register (constantly ()))
-
-(defn atomify [x]
-  (or (util/atom? x) (atom x)))
-
 (defn secd-registers
   [& {:keys [stack env code dump] :as registers}]
-  (let [defaults (zipmap [:stack :env :code :dump] (repeatedly 4 register))]
-    (util/fmap atomify (merge defaults registers))))
+  (let [defaults (zipmap [:stack :env :code :dump] (repeat 4 ()))]
+    (merge defaults registers)))
 
 (defmulti doinstruct
   (fn [op registers] op))
@@ -32,16 +27,16 @@
         register-binding (assoc register-binding :as registers)]
     `(defmethod doinstruct ~op [op# ~register-binding]
        (let [updates# (do ~@body)]
-         (util/reset-values! ~registers updates#)))))
+         (merge ~registers updates#)))))
 
 ;; s e (NIL.c) d => (nil.s) e c d
 (definstruct :nil {:keys [stack]}
-  {:stack (cons nil @stack)})
+  {:stack (cons nil stack)})
 
 ;; s e (LDC x.c) d => (x.s) e c d
 (definstruct :ldc {:keys [stack code]}
-  {:stack (cons (first @code) @stack)
-   :code (rest @code)})
+  {:stack (cons (first code) stack)
+   :code (rest code)})
 
 (defn locate
   [env x y]
@@ -52,14 +47,14 @@
 
 ;; s e (LD [i j].c) d => ((locate e i j).s) e c d
 (definstruct :ld {:keys [stack env code]}
-  {:stack (cons (apply locate @env (first @code)) @stack)
-   :code (rest @code)})
+  {:stack (cons (apply locate env (first code)) stack)
+   :code (rest code)})
 
 ;; (x.s) e (OP.c) d => ((OP x).s) e c d
 (defmacro defunary
   [op f]
   `(definstruct ~op {:keys [~'stack]}
-     {:stack (cons (~f (first @~'stack)) (rest @~'stack))}))
+     {:stack (cons (~f (first ~'stack)) (rest ~'stack))}))
 
 (defunary :atom (complement coll?))
 (defunary :null nil?)
@@ -70,7 +65,7 @@
 (defmacro defbinary
   [op f]
   `(definstruct ~op {stack-a# :stack}
-     (let [[a# b# & stack#] @stack-a#]
+     (let [[a# b# & stack#] stack-a#]
        {:stack (cons (~f a# b#) stack#)})))
 
 (defbinary :cons cons)
@@ -87,52 +82,52 @@
 ;; (x.s) e (SEL then else.c) d => s e c? (c.d)
 ;; where c? is (if x then else)
 (definstruct :sel {:keys [stack code dump]}
-  (let [test (first @stack)
-        [then else & more] @code
+  (let [test (first stack)
+        [then else & more] code
         result (if-not (false? test) then else)]
-    {:stack (rest @stack)
+    {:stack (rest stack)
      :code result
-     :dump (cons more @dump)}))
+     :dump (cons more dump)}))
 
 ;; s e (JOIN.c) (cr.d) => s e cr d
 (definstruct :join {:keys [code dump]}
-  {:code (first @dump)
-   :dump (rest @dump)})
+  {:code (first dump)
+   :dump (rest dump)})
 
 ;; s e (LDF f.c) d => ([f e].s) e c d
 (definstruct :ldf {:keys [code env stack]}
-  {:stack (cons [(first @code) @env] @stack)
-   :code (rest @code)})
+  {:stack (cons [(first code) env] stack)
+   :code (rest code)})
 
 ;; ([f e'] v.s) e (AP.c) d => nil (v.e') f (s e c.d)
 (definstruct :ap {:keys [stack env code dump]}
-  (let [[closure args & more] @stack
+  (let [[closure args & more] stack
         [function context] closure]
-    {:stack (register)
+    {:stack ()
      :env (cons args context)
      :code function
-     :dump (concat [more @env @code] @dump)}))
+     :dump (concat [more env code] dump)}))
 
 ;; (x.z) e' (RTN.q) (s e c.d) => (x.s) e c d
 (definstruct :rtn {:keys [stack env code dump]}
-  (let [[s e c & d] @dump]
-    {:stack (cons (first @stack) s)
+  (let [[s e c & d] dump]
+    {:stack (cons (first stack) s)
      :env e :code c :dump d}))
 
-;; s e (DUM.c) d => s (nil.e) c d
+;; s e (DUM.c) d => s ((atom nil).e) c d
 (definstruct :dum {:keys [env]}
-  {:env (cons (atom ()) @env)})
+  {:env (cons (atom ()) env)})
 
 ;; ([f (nil.e)] v.s) (nil.e) (RAP.c) d =>
 ;; nil (rplaca((nil.e), v).e) f (s e c.d)
 (definstruct :rap {:keys [stack env code dump]}
-  (let [[closure args & more] @stack
+  (let [[closure args & more] stack
         [function context] closure
-        old-env @env]
-    (reset! (first @env) args)
-    {:stack (register)
+        old-env env]
+    (reset! (first env) args)
+    {:stack ()
      :code function
-     :dump (concat [more old-env @code] @dump)}))
+     :dump (concat [more old-env code] dump)}))
 
 (defn do-secd*
   ([code]
@@ -142,8 +137,8 @@
      (if-let [code (and (seq code) (into () (reverse code)))]
        (loop [n n registers (secd-registers :code code)]
          (if-let [instruction (and (not= n 0)
-                                   (seq @(:code registers))
-                                   (first @(:code registers)))]
-           (do (swap! (:code registers) rest)
-               (recur (dec n) (doinstruct instruction registers)))
+                                   (seq (:code registers))
+                                   (first (:code registers)))]
+           (recur (dec n) (doinstruct instruction (update-in registers
+                                                             [:code] rest)))
            registers)))))
