@@ -1,10 +1,13 @@
 # secd
 
-The SECD machine, in Clojure. Adapted from _The Architecture of Symbolic Computers_.
+A silly implementation of the
+[SECD machine](https://en.wikipedia.org/wiki/SECD_machine), adapted from
+_The Architecture of Symbolic Computers_.
 
-## Usage
+**The good news:** This was fun and educational. I plan to compile a toy
+  language into SECD instructions.
 
-don't
+**The bad news:** It's about 400x slower than Clojure. Oops.
 
 ## License
 
