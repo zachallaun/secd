@@ -29,7 +29,7 @@
                    :cons
                    :ldf [:nil :ldc n :cons :ld [0 0] :ap :rtn]
                    :rap])
-        :stack deref first))
+        :stack first))
 
   ;; Great news everyone! It's only about 400x slower!
   ;; 3700 msecs
@@ -66,7 +66,7 @@
                    :ldf [:nil :ldc 5 :cons
                          :ld [0 0] :ap :rtn]
                    :rap])
-        :stack deref first))
+        :stack first))
 
   ;; MUAHAHAHAHAHAHA!!! Only 2500x slower!!!
   ;; 5000 msecs
