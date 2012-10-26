@@ -31,8 +31,33 @@
                    :rap])
         :stack first))
 
-  ;; Great news everyone! It's only about 400x slower!
-  ;; 3700 msecs
+  (fact-secd 10)
+
+  (defn odd?-secd [n]
+    (-> (do-secd* [:dum :nil
+                   :ldf [:ldc 0 :ld [0 0] :eq
+                         :sel
+                         [:ldc true :join]
+                         [:nil :ldc 1 :ld [0 0] :sub :cons
+                          :ld [1 0] :ap
+                          :join]
+                         :rtn]
+                   :cons
+                   :ldf [:ldc 0 :ld [0 0] :eq
+                         :sel
+                         [:ldc false :join]
+                         [:nil :ldc 1 :ld [0 0] :sub :cons
+                          :ld [1 1] :ap
+                          :join]
+                         :rtn]
+                   :cons
+                   :ldf [:nil :ldc n :cons :ld [0 0] :ap :rtn]
+                   :rap])
+        :stack first))
+
+  (odd?-secd 6)
+
+  ;; 9000 msecs
   (println "SECD (fact 10) 1e4 times")
   (dotimes [_ 5]
     (time
@@ -43,12 +68,12 @@
   (defn fib [n]
     (if (<= 1 n) n (+ (fib (- n 1)) (fib (- n 2)))))
 
-  ;; ~2 msecs
-  (println "Clojure (fib 20) 1e4 times")
+  ;; ~1 msecs
+  (println "Clojure (fib 5) 1e4 times")
   (dotimes [_ 5]
     (time
      (dotimes [_ 1e4]
-       (fib 20))))
+       (fib 5))))
 
   (defn fib-secd [n]
     (-> (do-secd* [:dum :nil
@@ -63,17 +88,17 @@
                           :join]
                          :rtn]
                    :cons
-                   :ldf [:nil :ldc 5 :cons
+                   :ldf [:nil :ldc n :cons
                          :ld [0 0] :ap :rtn]
                    :rap])
         :stack first))
 
-  ;; MUAHAHAHAHAHAHA!!! Only 2500x slower!!!
-  ;; 5000 msecs
-  (println "SECD (fib 20) 1e4 times")
+  ;; MUAHAHAHAHAHAHA!!! It's over 9000 times slower!
+  ;; 9000 msecs
+  (println "SECD (fib 5) 1e4 times")
   (dotimes [_ 5]
     (time
      (dotimes [_ 1e4]
-       (fib-secd 20))))
+       (fib-secd 5))))
 
   )
