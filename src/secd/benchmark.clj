@@ -33,29 +33,31 @@
 
   (fact-secd 10)
 
-  (defn odd?-secd [n]
-    (-> (do-secd* [:dum :nil
-                   :ldf [:ldc 0 :ld [0 0] :eq
                          :sel
-                         [:ldc true :join]
-                         [:nil :ldc 1 :ld [0 0] :sub :cons
-                          :ld [1 0] :ap
                           :join]
                          :rtn]
-                   :cons
-                   :ldf [:ldc 0 :ld [0 0] :eq
-                         :sel
-                         [:ldc false :join]
-                         [:nil :ldc 1 :ld [0 0] :sub :cons
-                          :ld [1 1] :ap
-                          :join]
-                         :rtn]
-                   :cons
-                   :ldf [:nil :ldc n :cons :ld [0 0] :ap :rtn]
-                   :rap])
         :stack first))
 
   (odd?-secd 6)
+
+  (defn odd?-secd [n]
+    (let [super-awesome-even-or-odd-abstraction
+          (fn [even? idx]
+            [:ldc 0 :ld [0 0] :eq
+             :sel
+             [:ldc even? :join]
+             [:nil :ldc 1 :ld [0 0] :sub :cons
+              :ld [1 idx] :ap
+              :join]
+             :rtn])]
+      (-> (do-secd* [:dum :nil
+                     :ldf (super-awesome-even-or-odd-abstraction true 0)
+                     :cons
+                     :ldf (super-awesome-even-or-odd-abstraction false 1)
+                     :cons
+                     :ldf [:nil :ldc n :cons :ld [0 0] :ap :rtn]
+                     :rap])
+          :stack first)))
 
   ;; 9000 msecs
   (println "SECD (fact 10) 1e4 times")
