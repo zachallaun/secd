@@ -135,6 +135,13 @@
                     (code-is :fn)
                     (dump-is ['(:rest) [dum] ()])))))
 
+(fact "about :writec instruction"
+      (with-out-str
+        (doinstruct :writec (secd-registers :stack [65])))
+      => "A"
+
+      (doinstruct :writec (secd-registers :stack [65])) => (secd-registers))
+
 (fact "about do-secd* optional n-instructions argument"
       (do-secd* 1 [:nil :nil :nil]) => (andfn (stack-is [nil])
                                               (code-is [:nil :nil]))

@@ -129,6 +129,11 @@
      :code function
      :dump (concat [more old-env code] dump)}))
 
+;; (x.s) e (WRITEC.c d => s e c d, where x is a char printed to output
+(definstruct :writec {:keys [stack]}
+  (print (char (first stack)))
+  {:stack (rest stack)})
+
 (defn do-secd*
   ([code]
      ;; This is a pretty ugly kludge to just "go till :code is empty"
