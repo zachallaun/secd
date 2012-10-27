@@ -57,7 +57,7 @@
      {:stack (cons (~f (first ~'stack)) (rest ~'stack))}))
 
 (defunary :atom (complement coll?))
-(defunary :null nil?)
+(defunary :null #(if (coll? %) (empty? %) (nil? %)))
 (defunary :car first)
 (defunary :cdr rest)
 
