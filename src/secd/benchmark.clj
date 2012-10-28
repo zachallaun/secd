@@ -36,14 +36,13 @@
   (defn fact-secd [n]
     (-> (do-secd* [:dum :nil
                    :ldf [:ldc 0 :ld [0 0] :eq ;; if (= n 0)
-                         :sel
-                         [:ldc 1 :join]       ;; return 1
-                         [:ld [0 0]           ;; else load n
-                          :nil
-                          :ldc 1 :ld [0 0] :sub :cons ;; build (- n 1) args
-                          :ld [1 0] :ap               ;; load fact and apply
-                          :mty                ;; and multiply the result by n
-                          :join]
+                         :test
+                         [:ldc 1 :rtn]       ;; return 1
+                         :ld [0 0]           ;; else load n
+                         :nil
+                         :ldc 1 :ld [0 0] :sub :cons ;; build (- n 1) args
+                         :ld [1 0] :ap               ;; load fact and apply
+                         :mty                ;; and multiply the result by n
                          :rtn]
                    :cons
                    :ldf [:nil :ldc n :cons :ld [0 0] :ap :rtn]
@@ -52,8 +51,7 @@
 
   (fact-secd 10)
 
-
-  ;; 9000 msecs
+  ;; 4700 msecs
   (println "SECD (fact 10) 1e4 times")
   (dotimes [_ 5]
     (time

@@ -89,6 +89,8 @@
 
       (doinstruct :join (secd-registers :dump '((:dumped)))) => (code-is '(:dumped)))
 
+;; TODO: :test instruction
+
 (fact "about :ldf instruction"
       (doinstruct :ldf (secd-registers :code '(:fn-instructions) :env '(:context)))
       => (map-similar-to

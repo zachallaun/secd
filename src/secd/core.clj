@@ -94,6 +94,15 @@
   {:code (first dump)
    :dump (rest dump)})
 
+;; (x.s) e (TEST ct.c) d => s e c? d
+;; where c? is (if x ct c)
+(definstruct :test {:keys [stack code]}
+  (let [test (first stack)
+        [then & else] code
+        result (if-not (false? test) then else)]
+    {:stack (rest stack)
+     :code result}))
+
 ;; s e (LDF f.c) d => ([f e].s) e c d
 (definstruct :ldf {:keys [code env stack]}
   {:stack (cons [(first code) env] stack)
