@@ -189,9 +189,7 @@
 
 (fact "about do-secd* if-then-else"
       ;; 5 + (if (atom :an-atom) then 1 else 2)
-      (do-secd* [LDC 5
-                 LDC :an-atom
-                 ATOM
+      (do-secd* [LDC 5 LDC :an-atom ATOM
                  SEL
                  [LDC 1 JOIN]
                  [LDC 2 JOIN]
@@ -199,10 +197,7 @@
       => (fstack-is 6)
 
       ;; (5 (if (atom []) then + else -) 5) + 10
-      (do-secd* [LDC 5
-                 LDC 5
-                 LDC []
-                 ATOM
+      (do-secd* [LDC 5 LDC 5 LDC [] ATOM
                  SEL
                  [ADD JOIN]
                  [SUB JOIN]

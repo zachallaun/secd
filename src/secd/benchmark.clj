@@ -36,14 +36,14 @@
   (defn fact-secd [n]
     (-> (do-secd* [DUM NIL
                    LDF [LDC 0 LD [0 0] EQ ;; if (= n 0)
-                         TEST
-                         [LDC 1 RTN]       ;; return 1
-                         LD [0 0]           ;; else load n
-                         NIL
-                         LDC 1 LD [0 0] SUB CONS ;; build (- n 1) args
-                         LD [1 0] AP               ;; load fact and apply
-                         MTY                ;; and multiply the result by n
-                         RTN]
+                        TEST
+                        [LDC 1 RTN]       ;; return 1
+                        LD [0 0]           ;; else load n
+                        NIL
+                        LDC 1 LD [0 0] SUB CONS ;; build (- n 1) args
+                        LD [1 0] AP               ;; load fact and apply
+                        MTY                ;; and multiply the result by n
+                        RTN]
                    CONS
                    LDF [NIL LDC n CONS LD [0 0] DAP]
                    RAP])
@@ -73,16 +73,16 @@
   (defn fact-tr-secd [n]
     (-> (do-secd* [DUM NIL
                    LDF [LDC 0 LD [0 0] EQ
-                         TEST
-                         [LD [0 1] RTN]
-                         NIL
-                         LD [0 0] LD [0 1] MTY CONS
-                         LDC 1 LD [0 0] SUB CONS
-                         LD [1 0] DAP
-                         RTN]
+                        TEST
+                        [LD [0 1] RTN]
+                        NIL
+                        LD [0 0] LD [0 1] MTY CONS
+                        LDC 1 LD [0 0] SUB CONS
+                        LD [1 0] DAP
+                        RTN]
                    CONS
                    LDF [NIL LDC 1 CONS LDC n CONS
-                         LD [0 0] DAP]
+                        LD [0 0] DAP]
                    RAP])
         :stack first))
 
@@ -108,17 +108,17 @@
   (defn fib-secd [n]
     (-> (do-secd* [DUM NIL
                    LDF [LDC 1 LD [0 0] LTE
-                         TEST
-                         [LD [0 0] RTN]
-                         NIL LDC 1 LD [0 0] SUB CONS
-                         LD [1 0] AP
-                         NIL LDC 2 LD [0 0] SUB CONS
-                         LD [1 0] AP
-                         ADD
-                         RTN]
+                        TEST
+                        [LD [0 0] RTN]
+                        NIL LDC 1 LD [0 0] SUB CONS
+                        LD [1 0] AP
+                        NIL LDC 2 LD [0 0] SUB CONS
+                        LD [1 0] AP
+                        ADD
+                        RTN]
                    CONS
                    LDF [NIL LDC n CONS
-                         LD [0 0] AP RTN]
+                        LD [0 0] AP RTN]
                    RAP])
         :stack first))
 
