@@ -58,6 +58,40 @@
      (dotimes [_ 1e4]
        (fact-secd 10))))
 
+  ;;; Tail-recursive factorial
+  (defn fact-tr [n]
+    (letfn [(fact [n acc]
+              (if (= n 0) acc (recur (dec n) (* n acc))))]
+      (fact n 1)))
+
+  ;; ~6 msecs
+  (dotimes [_ 5]
+    (time
+     (dotimes [_ 1e4]
+       (fact-tr 10))))
+
+  (defn fact-tr-secd [n]
+    (-> (do-secd* [:dum :nil
+                   :ldf [:ldc 0 :ld [0 0] :eq
+                         :test
+                         [:ld [0 1] :rtn]
+                         :nil
+                         :ld [0 0] :ld [0 1] :mty :cons
+                         :ldc 1 :ld [0 0] :sub :cons
+                         :ld [1 0] :dap
+                         :rtn]
+                   :cons
+                   :ldf [:nil :ldc 1 :cons :ldc n :cons
+                         :ld [0 0] :dap]
+                   :rap])
+        :stack first))
+
+  ;; ~4900 msecs
+  (dotimes [_ 5]
+    (time
+     (dotimes [_ 1e4]
+       (fact-tr-secd 10))))
+
   ;;; Naive fibonacci
   (defn fib [n]
     (if (<= 1 n) n (+ (fib (- n 1)) (fib (- n 2)))))
