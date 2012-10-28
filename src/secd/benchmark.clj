@@ -72,14 +72,13 @@
   (defn fib-secd [n]
     (-> (do-secd* [:dum :nil
                    :ldf [:ldc 1 :ld [0 0] :lte
-                         :sel
-                         [:ld [0 0] :join]
-                         [:nil :ldc 1 :ld [0 0] :sub :cons
-                          :ld [1 0] :ap
-                          :nil :ldc 2 :ld [0 0] :sub :cons
-                          :ld [1 0] :ap
-                          :add
-                          :join]
+                         :test
+                         [:ld [0 0] :rtn]
+                         :nil :ldc 1 :ld [0 0] :sub :cons
+                         :ld [1 0] :ap
+                         :nil :ldc 2 :ld [0 0] :sub :cons
+                         :ld [1 0] :ap
+                         :add
                          :rtn]
                    :cons
                    :ldf [:nil :ldc n :cons
@@ -87,8 +86,7 @@
                    :rap])
         :stack first))
 
-  ;; MUAHAHAHAHAHAHA!!! It's over 9000 times slower!
-  ;; 9000 msecs
+  ;; 6025 msecs
   (println "SECD (fib 5) 1e4 times")
   (dotimes [_ 5]
     (time
