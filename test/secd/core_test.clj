@@ -100,6 +100,11 @@
       => (andfn (code-is '(:false))
                 (dump-is ())))
 
+(fact "about :aa add-arguments instruction"
+      (doinstruct :aa (secd-registers :stack '(:args)))
+      => (andfn (stack-is ())
+                (env-is '(:args))))
+
 (fact "about :ldf instruction"
       (doinstruct :ldf (secd-registers :code '(:fn-instructions) :env '(:context)))
       => (map-similar-to
@@ -114,6 +119,15 @@
             (secd-registers :env '(:args :context)
                             :code :fn-instructions
                             :dump '((:rest) () ())))))
+
+(fact "about :dap direct apply instruction"
+      (let [registers (secd-registers :stack '([:fn-instructions (:context)]
+                                                 :args :rest))]
+        (doinstruct :dap registers)
+        => (andfn (stack-is ())
+                  (env-is '(:args :context))
+                  (code-is :fn-instructions)
+                  (dump-is ()))))
 
 (fact "about :rtn instruction"
       (let [registers (secd-registers :stack '(:kept :discarded)

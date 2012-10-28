@@ -103,6 +103,11 @@
     {:stack (rest stack)
      :code result}))
 
+;; (v.s) e (AA.c) d => s (v.e) c d
+(definstruct :aa {:keys [stack env]}
+  {:stack (rest stack)
+   :env (cons (first stack) env)})
+
 ;; s e (LDF f.c) d => ([f e].s) e c d
 (definstruct :ldf {:keys [code env stack]}
   {:stack (cons [(first code) env] stack)
@@ -116,6 +121,15 @@
      :env (cons args context)
      :code function
      :dump (concat [more env code] dump)}))
+
+;; DAP :: Direct APply leaves dump alone
+;; ([f e'] v.s) e (DAP.c) d => nil (v.e') f d
+(definstruct :dap {:keys [stack env code]}
+  (let [[closure args & more] stack
+        [function context] closure]
+    {:stack ()
+     :env (cons args context)
+     :code function}))
 
 ;; (x.z) e' (RTN.q) (s e c.d) => (x.s) e c d
 (definstruct :rtn {:keys [stack env code dump]}

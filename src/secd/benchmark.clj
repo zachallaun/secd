@@ -45,7 +45,7 @@
                          :mty                ;; and multiply the result by n
                          :rtn]
                    :cons
-                   :ldf [:nil :ldc n :cons :ld [0 0] :ap :rtn]
+                   :ldf [:nil :ldc n :cons :ld [0 0] :dap]
                    :rap])
         :stack first))
 
