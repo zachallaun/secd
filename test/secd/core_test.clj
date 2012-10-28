@@ -89,7 +89,16 @@
 
       (doinstruct :join (secd-registers :dump '((:dumped)))) => (code-is '(:dumped)))
 
-;; TODO: :test instruction
+(fact "about :test instructions"
+      (doinstruct :test (secd-registers :stack '(:truthy)
+                                        :code '(:true :false)))
+      => (andfn (code-is :true)
+                (dump-is ()))
+
+      (doinstruct :test (secd-registers :stack '(false)
+                                       :code '(:true :false)))
+      => (andfn (code-is '(:false))
+                (dump-is ())))
 
 (fact "about :ldf instruction"
       (doinstruct :ldf (secd-registers :code '(:fn-instructions) :env '(:context)))
