@@ -33,13 +33,6 @@
 
   (fact-secd 10)
 
-                         :sel
-                          :join]
-                         :rtn]
-        :stack first))
-
-  (odd?-secd 6)
-
   (defn odd?-secd [n]
     (let [super-awesome-even-or-odd-abstraction
           (fn [even? idx]
