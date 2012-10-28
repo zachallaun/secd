@@ -6,20 +6,20 @@
   (defn odd?-secd [n]
     (let [super-awesome-even-or-odd-abstraction
           (fn [even? idx]
-            [:ldc 0 :ld [0 0] :eq
-             :sel
-             [:ldc even? :join]
-             [:nil :ldc 1 :ld [0 0] :sub :cons
-              :ld [1 idx] :ap
-              :join]
-             :rtn])]
-      (-> (do-secd* [:dum :nil
-                     :ldf (super-awesome-even-or-odd-abstraction true 0)
-                     :cons
-                     :ldf (super-awesome-even-or-odd-abstraction false 1)
-                     :cons
-                     :ldf [:nil :ldc n :cons :ld [0 0] :ap :rtn]
-                     :rap])
+            [LDC 0 LD [0 0] EQ
+             SEL
+             [LDC even? JOIN]
+             [NIL LDC 1 LD [0 0] SUB CONS
+              LD [1 idx] AP
+              JOIN]
+             RTN])]
+      (-> (do-secd* [DUM NIL
+                     LDF (super-awesome-even-or-odd-abstraction true 0)
+                     CONS
+                     LDF (super-awesome-even-or-odd-abstraction false 1)
+                     CONS
+                     LDF [NIL LDC n CONS LD [0 0] AP RTN]
+                     RAP])
           :stack first)))
 
   ;;; Naive factorial
@@ -34,24 +34,24 @@
        (fact 10))))
 
   (defn fact-secd [n]
-    (-> (do-secd* [:dum :nil
-                   :ldf [:ldc 0 :ld [0 0] :eq ;; if (= n 0)
-                         :test
-                         [:ldc 1 :rtn]       ;; return 1
-                         :ld [0 0]           ;; else load n
-                         :nil
-                         :ldc 1 :ld [0 0] :sub :cons ;; build (- n 1) args
-                         :ld [1 0] :ap               ;; load fact and apply
-                         :mty                ;; and multiply the result by n
-                         :rtn]
-                   :cons
-                   :ldf [:nil :ldc n :cons :ld [0 0] :dap]
-                   :rap])
+    (-> (do-secd* [DUM NIL
+                   LDF [LDC 0 LD [0 0] EQ ;; if (= n 0)
+                         TEST
+                         [LDC 1 RTN]       ;; return 1
+                         LD [0 0]           ;; else load n
+                         NIL
+                         LDC 1 LD [0 0] SUB CONS ;; build (- n 1) args
+                         LD [1 0] AP               ;; load fact and apply
+                         MTY                ;; and multiply the result by n
+                         RTN]
+                   CONS
+                   LDF [NIL LDC n CONS LD [0 0] DAP]
+                   RAP])
         :stack first))
 
   (fact-secd 10)
 
-  ;; ~4000 msecs
+  ;; ~3550 msecs
   (println "SECD (fact 10) 1e4 times")
   (dotimes [_ 5]
     (time
@@ -71,22 +71,24 @@
        (fact-tr 10))))
 
   (defn fact-tr-secd [n]
-    (-> (do-secd* [:dum :nil
-                   :ldf [:ldc 0 :ld [0 0] :eq
-                         :test
-                         [:ld [0 1] :rtn]
-                         :nil
-                         :ld [0 0] :ld [0 1] :mty :cons
-                         :ldc 1 :ld [0 0] :sub :cons
-                         :ld [1 0] :dap
-                         :rtn]
-                   :cons
-                   :ldf [:nil :ldc 1 :cons :ldc n :cons
-                         :ld [0 0] :dap]
-                   :rap])
+    (-> (do-secd* [DUM NIL
+                   LDF [LDC 0 LD [0 0] EQ
+                         TEST
+                         [LD [0 1] RTN]
+                         NIL
+                         LD [0 0] LD [0 1] MTY CONS
+                         LDC 1 LD [0 0] SUB CONS
+                         LD [1 0] DAP
+                         RTN]
+                   CONS
+                   LDF [NIL LDC 1 CONS LDC n CONS
+                         LD [0 0] DAP]
+                   RAP])
         :stack first))
 
-  ;; ~4050 msecs
+  (fact-tr-secd 10)
+
+  ;; ~3600 msecs
   (dotimes [_ 5]
     (time
      (dotimes [_ 1e4]
@@ -104,23 +106,25 @@
        (fib 5))))
 
   (defn fib-secd [n]
-    (-> (do-secd* [:dum :nil
-                   :ldf [:ldc 1 :ld [0 0] :lte
-                         :test
-                         [:ld [0 0] :rtn]
-                         :nil :ldc 1 :ld [0 0] :sub :cons
-                         :ld [1 0] :ap
-                         :nil :ldc 2 :ld [0 0] :sub :cons
-                         :ld [1 0] :ap
-                         :add
-                         :rtn]
-                   :cons
-                   :ldf [:nil :ldc n :cons
-                         :ld [0 0] :ap :rtn]
-                   :rap])
+    (-> (do-secd* [DUM NIL
+                   LDF [LDC 1 LD [0 0] LTE
+                         TEST
+                         [LD [0 0] RTN]
+                         NIL LDC 1 LD [0 0] SUB CONS
+                         LD [1 0] AP
+                         NIL LDC 2 LD [0 0] SUB CONS
+                         LD [1 0] AP
+                         ADD
+                         RTN]
+                   CONS
+                   LDF [NIL LDC n CONS
+                         LD [0 0] AP RTN]
+                   RAP])
         :stack first))
 
-  ;; ~5100 msecs
+  (fib-secd 5)
+
+  ;; ~4600 msecs
   (println "SECD (fib 5) 1e4 times")
   (dotimes [_ 5]
     (time

@@ -8,8 +8,11 @@
   (let [default (apply ->Registers (repeat 4 ()))]
     (merge default registers)))
 
-(defmulti doinstruct
-  (fn [op registers] op))
+(defprotocol Instruction
+  (run [this registers] "Run the instruction and return a new set of registers."))
+
+(defn- record-name [sym] (symbol (str sym "-I")))
+(defn- constructor [sym] (symbol (str "->" sym "-I")))
 
 (defmacro definstruct
   "Defines an instruction that executes change on SECD registers.
@@ -27,16 +30,18 @@
   [op register-binding & body]
   (let [registers (or (:as register-binding) (gensym "registers"))
         register-binding (assoc register-binding :as registers)]
-    `(defmethod doinstruct ~op [op# ~register-binding]
-       (let [updates# (do ~@body)]
-         (merge ~registers updates#)))))
+    `(do (defrecord ~(record-name op) []
+           ~'Instruction
+           (~'run [_# ~register-binding]
+             (merge ~registers (do ~@body))))
+         (def ~op (~(constructor op))))))
 
 ;; s e (NIL.c) d => (nil.s) e c d
-(definstruct :nil {:keys [stack]}
+(definstruct NIL {:keys [stack]}
   {:stack (cons nil stack)})
 
 ;; s e (LDC x.c) d => (x.s) e c d
-(definstruct :ldc {:keys [stack code]}
+(definstruct LDC {:keys [stack code]}
   {:stack (cons (first code) stack)
    :code (rest code)})
 
@@ -48,7 +53,7 @@
     (nth derefed y)))
 
 ;; s e (LD [i j].c) d => ((locate e i j).s) e c d
-(definstruct :ld {:keys [stack env code]}
+(definstruct LD {:keys [stack env code]}
   {:stack (cons (apply locate env (first code)) stack)
    :code (rest code)})
 
@@ -58,10 +63,10 @@
   `(definstruct ~op {:keys [~'stack]}
      {:stack (cons (~f (first ~'stack)) (rest ~'stack))}))
 
-(defunary :atom (complement coll?))
-(defunary :null #(if (coll? %) (empty? %) (nil? %)))
-(defunary :car first)
-(defunary :cdr rest)
+(defunary ATOM (complement coll?))
+(defunary NULL #(if (coll? %) (empty? %) (nil? %)))
+(defunary CAR first)
+(defunary CDR rest)
 
 ;; (x y.s) e (OP.c) d => ((OP x y).s) e c d
 (defmacro defbinary
@@ -70,20 +75,20 @@
      (let [[a# b# & stack#] stack-a#]
        {:stack (cons (~f a# b#) stack#)})))
 
-(defbinary :cons cons)
-(defbinary :add +)
-(defbinary :sub -)
-(defbinary :mty *)
-(defbinary :div /)
-(defbinary :eq =)
-(defbinary :gt >)
-(defbinary :lt <)
-(defbinary :gte >=)
-(defbinary :lte <=)
+(defbinary CONS cons)
+(defbinary ADD +)
+(defbinary SUB -)
+(defbinary MTY *)
+(defbinary DIV /)
+(defbinary EQ =)
+(defbinary GT >)
+(defbinary LT <)
+(defbinary GTE >=)
+(defbinary LTE <=)
 
 ;; (x.s) e (SEL then else.c) d => s e c? (c.d)
 ;; where c? is (if x then else)
-(definstruct :sel {:keys [stack code dump]}
+(definstruct SEL {:keys [stack code dump]}
   (let [test (first stack)
         [then else & more] code
         result (if-not (false? test) then else)]
@@ -92,13 +97,13 @@
      :dump (cons more dump)}))
 
 ;; s e (JOIN.c) (cr.d) => s e cr d
-(definstruct :join {:keys [code dump]}
+(definstruct JOIN {:keys [code dump]}
   {:code (first dump)
    :dump (rest dump)})
 
 ;; (x.s) e (TEST ct.c) d => s e c? d
 ;; where c? is (if x ct c)
-(definstruct :test {:keys [stack code]}
+(definstruct TEST {:keys [stack code]}
   (let [test (first stack)
         [then & else] code
         result (if-not (false? test) then else)]
@@ -106,17 +111,17 @@
      :code result}))
 
 ;; (v.s) e (AA.c) d => s (v.e) c d
-(definstruct :aa {:keys [stack env]}
+(definstruct AA {:keys [stack env]}
   {:stack (rest stack)
    :env (cons (first stack) env)})
 
 ;; s e (LDF f.c) d => ([f e].s) e c d
-(definstruct :ldf {:keys [code env stack]}
+(definstruct LDF {:keys [code env stack]}
   {:stack (cons [(first code) env] stack)
    :code (rest code)})
 
 ;; ([f e'] v.s) e (AP.c) d => nil (v.e') f (s e c.d)
-(definstruct :ap {:keys [stack env code dump]}
+(definstruct AP {:keys [stack env code dump]}
   (let [[closure args & more] stack
         [function context] closure]
     {:stack ()
@@ -126,7 +131,7 @@
 
 ;; DAP :: Direct APply leaves dump alone
 ;; ([f e'] v.s) e (DAP.c) d => nil (v.e') f d
-(definstruct :dap {:keys [stack env code]}
+(definstruct DAP {:keys [stack env code]}
   (let [[closure args & more] stack
         [function context] closure]
     {:stack ()
@@ -134,18 +139,18 @@
      :code function}))
 
 ;; (x.z) e' (RTN.q) (s e c.d) => (x.s) e c d
-(definstruct :rtn {:keys [stack env code dump]}
+(definstruct RTN {:keys [stack env code dump]}
   (let [[s e c & d] dump]
     {:stack (cons (first stack) s)
      :env e :code c :dump d}))
 
 ;; s e (DUM.c) d => s ((atom nil).e) c d
-(definstruct :dum {:keys [env]}
+(definstruct DUM {:keys [env]}
   {:env (cons (atom ()) env)})
 
 ;; ([f (nil.e)] v.s) (nil.e) (RAP.c) d =>
 ;; nil (rplaca((nil.e), v).e) f (s e c.d)
-(definstruct :rap {:keys [stack env code dump]}
+(definstruct RAP {:keys [stack env code dump]}
   (let [[closure args & more] stack
         [function context] closure
         old-env env]
@@ -155,7 +160,7 @@
      :dump (concat [more old-env code] dump)}))
 
 ;; (x.s) e (WRITEC.c d => s e c d, where x is a char printed to output
-(definstruct :writec {:keys [stack]}
+(definstruct WRITEC {:keys [stack]}
   (print (char (first stack)))
   {:stack (rest stack)})
 
@@ -169,6 +174,5 @@
          (if-let [instruction (and (not= n 0)
                                    (seq (:code registers))
                                    (first (:code registers)))]
-           (recur (dec n) (doinstruct instruction (update-in registers
-                                                             [:code] rest)))
+           (recur (dec n) (run instruction (update-in registers [:code] rest)))
            registers)))))
