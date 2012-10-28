@@ -27,23 +27,21 @@
   ex.
     (definstruct :nil {:keys [stack] :as regs}
       {:stack (cons nil @stack)})"
-  [op register-binding & body]
-  (let [registers (or (:as register-binding) (gensym "registers"))
-        register-binding (assoc register-binding :as registers)]
+  [op register-bindings & body]
+  (let [register-bindings (zipmap register-bindings [:stack :env :code :dump])]
     `(do (defrecord ~(record-name op) []
            ~'Instruction
-           (~'run [_# ~register-binding]
-             (merge ~registers (do ~@body))))
+           (~'run [_# ~register-bindings]
+             ~@body))
          (def ~op (~(constructor op))))))
 
 ;; s e (NIL.c) d => (nil.s) e c d
-(definstruct NIL {:keys [stack]}
-  {:stack (cons nil stack)})
+(definstruct NIL [s e c d]
+  (->Registers (cons nil s) e c d))
 
 ;; s e (LDC x.c) d => (x.s) e c d
-(definstruct LDC {:keys [stack code]}
-  {:stack (cons (first code) stack)
-   :code (rest code)})
+(definstruct LDC [s e c d]
+  (->Registers (cons (first c) s) e (rest c) d))
 
 (defn locate
   [env x y]
@@ -53,15 +51,15 @@
     (nth derefed y)))
 
 ;; s e (LD [i j].c) d => ((locate e i j).s) e c d
-(definstruct LD {:keys [stack env code]}
-  {:stack (cons (apply locate env (first code)) stack)
-   :code (rest code)})
+(definstruct LD [s e c d]
+  (->Registers (cons (apply locate e (first c)) s) e (rest c) d))
 
 ;; (x.s) e (OP.c) d => ((OP x).s) e c d
 (defmacro defunary
   [op f]
-  `(definstruct ~op {:keys [~'stack]}
-     {:stack (cons (~f (first ~'stack)) (rest ~'stack))}))
+  `(definstruct ~op [~'stack ~'env ~'code ~'dump]
+     (~'->Registers (cons (~f (first ~'stack)) (rest ~'stack))
+                    ~'env ~'code ~'dump)))
 
 (defunary ATOM (complement coll?))
 (defunary NULL #(if (coll? %) (empty? %) (nil? %)))
@@ -71,9 +69,10 @@
 ;; (x y.s) e (OP.c) d => ((OP x y).s) e c d
 (defmacro defbinary
   [op f]
-  `(definstruct ~op {stack-a# :stack}
-     (let [[a# b# & stack#] stack-a#]
-       {:stack (cons (~f a# b#) stack#)})))
+  `(definstruct ~op [~'stack ~'env ~'code ~'dump]
+     (let [[a# b# & stack#] ~'stack]
+       (~'->Registers (cons (~f a# b#) stack#)
+                      ~'env ~'code ~'dump))))
 
 (defbinary CONS cons)
 (defbinary ADD +)
@@ -88,81 +87,67 @@
 
 ;; (x.s) e (SEL then else.c) d => s e c? (c.d)
 ;; where c? is (if x then else)
-(definstruct SEL {:keys [stack code dump]}
-  (let [test (first stack)
-        [then else & more] code
+(definstruct SEL [s e c d]
+  (let [test (first s)
+        [then else & more] c
         result (if-not (false? test) then else)]
-    {:stack (rest stack)
-     :code result
-     :dump (cons more dump)}))
+    (->Registers (rest s) e result (cons more d))))
 
 ;; s e (JOIN.c) (cr.d) => s e cr d
-(definstruct JOIN {:keys [code dump]}
-  {:code (first dump)
-   :dump (rest dump)})
+(definstruct JOIN [s e c d]
+  (->Registers s e (first d) (rest d)))
 
 ;; (x.s) e (TEST ct.c) d => s e c? d
 ;; where c? is (if x ct c)
-(definstruct TEST {:keys [stack code]}
-  (let [test (first stack)
-        [then & else] code
+(definstruct TEST [s e c d]
+  (let [test (first s)
+        [then & else] c
         result (if-not (false? test) then else)]
-    {:stack (rest stack)
-     :code result}))
+    (->Registers (rest s) e result d)))
 
 ;; (v.s) e (AA.c) d => s (v.e) c d
-(definstruct AA {:keys [stack env]}
-  {:stack (rest stack)
-   :env (cons (first stack) env)})
+(definstruct AA [s e c d]
+  (->Registers (rest s) (cons (first s) e) c d))
 
 ;; s e (LDF f.c) d => ([f e].s) e c d
-(definstruct LDF {:keys [code env stack]}
-  {:stack (cons [(first code) env] stack)
-   :code (rest code)})
+(definstruct LDF [s e c d]
+  (->Registers (cons [(first c) e] s) e (rest c) d))
 
 ;; ([f e'] v.s) e (AP.c) d => nil (v.e') f (s e c.d)
-(definstruct AP {:keys [stack env code dump]}
-  (let [[closure args & more] stack
+(definstruct AP [s e c d]
+  (let [[closure args & more] s
         [function context] closure]
-    {:stack ()
-     :env (cons args context)
-     :code function
-     :dump (concat [more env code] dump)}))
+    (->Registers () (cons args context) function (concat [more e c] d))))
 
 ;; DAP :: Direct APply leaves dump alone
 ;; ([f e'] v.s) e (DAP.c) d => nil (v.e') f d
-(definstruct DAP {:keys [stack env code]}
-  (let [[closure args & more] stack
+(definstruct DAP [s e c d]
+  (let [[closure args & more] s
         [function context] closure]
-    {:stack ()
-     :env (cons args context)
-     :code function}))
+    (->Registers () (cons args context) function d)))
 
 ;; (x.z) e' (RTN.q) (s e c.d) => (x.s) e c d
-(definstruct RTN {:keys [stack env code dump]}
+(definstruct RTN [stack env code dump]
   (let [[s e c & d] dump]
-    {:stack (cons (first stack) s)
-     :env e :code c :dump d}))
+    (->Registers (cons (first stack) s) e c d)))
 
 ;; s e (DUM.c) d => s ((atom nil).e) c d
-(definstruct DUM {:keys [env]}
-  {:env (cons (atom ()) env)})
+(definstruct DUM [s e c d]
+  (->Registers s (cons (atom ()) e) c d))
 
 ;; ([f (nil.e)] v.s) (nil.e) (RAP.c) d =>
 ;; nil (rplaca((nil.e), v).e) f (s e c.d)
-(definstruct RAP {:keys [stack env code dump]}
-  (let [[closure args & more] stack
+(definstruct RAP [s e c d]
+  (let [[closure args & more] s
         [function context] closure
-        old-env env]
-    (reset! (first env) args)
-    {:stack ()
-     :code function
-     :dump (concat [more old-env code] dump)}))
+        old-e e]
+    (reset! (first e) args)
+    (->Registers () e function (concat [more old-e c] d))))
 
 ;; (x.s) e (WRITEC.c d => s e c d, where x is a char printed to output
-(definstruct WRITEC {:keys [stack]}
-  (print (char (first stack)))
-  {:stack (rest stack)})
+(definstruct WRITEC [s e c d]
+  (print (char (first s)))
+  (->Registers (rest s) e c d))
 
 (defn do-secd*
   ([code]

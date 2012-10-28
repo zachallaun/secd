@@ -17,10 +17,6 @@
                           :code (atom ()) :dump (atom ())}))
 
 (fact "about definstruct return value"
-      ;; definstruct expects the return value of the body to be a map
-      (definstruct FOO {} :foo)
-      (run FOO (secd-registers)) => (throws IllegalArgumentException)
-
       (definstruct BAR {} {})
       (run BAR (secd-registers)) => truthy)
 

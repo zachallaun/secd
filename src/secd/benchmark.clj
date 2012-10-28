@@ -51,7 +51,7 @@
 
   (fact-secd 10)
 
-  ;; ~3550 msecs
+  ;; ~1920 msecs
   (println "SECD (fact 10) 1e4 times")
   (dotimes [_ 5]
     (time
@@ -88,7 +88,7 @@
 
   (fact-tr-secd 10)
 
-  ;; ~3600 msecs
+  ;; ~2000 msecs
   (dotimes [_ 5]
     (time
      (dotimes [_ 1e4]
@@ -124,7 +124,7 @@
 
   (fib-secd 5)
 
-  ;; ~4600 msecs
+  ;; ~2475 msecs
   (println "SECD (fib 5) 1e4 times")
   (dotimes [_ 5]
     (time
