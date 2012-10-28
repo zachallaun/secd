@@ -1,10 +1,12 @@
 (ns secd.core
   (:require [secd.util :as util]))
 
+(defrecord Registers [stack env code dump])
+
 (defn secd-registers
   [& {:keys [stack env code dump] :as registers}]
-  (let [defaults (zipmap [:stack :env :code :dump] (repeat 4 ()))]
-    (merge defaults registers)))
+  (let [default (apply ->Registers (repeat 4 ()))]
+    (merge default registers)))
 
 (defmulti doinstruct
   (fn [op registers] op))
