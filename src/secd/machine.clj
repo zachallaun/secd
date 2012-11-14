@@ -161,3 +161,9 @@
                                    (first (:code registers)))]
            (recur (dec n) (run instruction (update-in registers [:code] rest)))
            registers)))))
+
+(defn do-secd
+  [code]
+  (-> (do-secd* code)
+      :stack
+      first))
