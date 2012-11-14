@@ -185,11 +185,14 @@ with the result of the operation.)
 
 Examples of unary built-ins:
 ```
-ATOM - Returns 1 if its argument isn't a composite value (like a list), else 0
-NULL - Returns 1 if its argument is nil or the empty list, else 0
+ATOM - Returns true if its argument isn't a composite value (like a list), else false
+NULL - Returns true if its argument is nil or the empty list, else false
 CAR  - Returns the head of a list
 CDR  - Returns the tail of a list
 ```
+Note: in the original SECD machine, the boolean values true and false
+where represented as 1 and 0, respectively. I've chosen to instead use
+Clojure's `true` and `false` for clarity and simplicity.
 
 **Binary:**
 ```
@@ -256,9 +259,6 @@ Some simple SECD examples using what we've learned, in Clojure:
 ;; (atom 1)
 (do-secd [LDC 1 ATOM])
 ;;=> true
-;; Note that the Clojure SECD implementation uses Clojure's true and
-;; false to represent boolean values, instead of the traditional SECD 1
-;; and 0.
 ```
 
 ### Branching Instructions
@@ -266,8 +266,7 @@ Some simple SECD examples using what we've learned, in Clojure:
 **SEL:**
 ```
 (x . s) e (SEL then else . c) d => s e c? (c . d)
-
-where c? is (if (not= x 0) then else)
+where c? is (if (not= x false) then else)
 ```
 
 **JOIN:**
