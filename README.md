@@ -119,16 +119,16 @@ STOP   - Stop execution
 
 ### Basic Instructions
 
-**NIL**:
+**NIL:**
 ```
 s e (NIL . c) d => (nil . s) e c d
 ```
 `NIL` is the simplest SECD instruction. It pushes `nil` onto the stack.
 In SECD-land, `nil` is also the empty list. We'll use `NIL` before we
-have to build up an argument list, for example, and then `cons` elements
+have to build up an argument list, for example, and then `CONS` elements
 onto it. Stay tuned.
 
-**LDC &mdash; Load constant**:
+**LDC &mdash; Load constant:**
 ```
 s e (LDC x . c) d => (x . s) e c d
 ```
@@ -136,7 +136,7 @@ s e (LDC x . c) d => (x . s) e c d
 instance, `s e (LDC 1 . c) d` would load the value 1 onto the stack. `s e
 (LDC (1 2 3) . c) d` would load the list `(1 2 3)`.
 
-**LD**:
+**LD &mdash; Load from environment:**
 ```
 s e (LD [y x] . c) d => (locate([y x], e) . s) e c d
 ```
@@ -172,7 +172,7 @@ operations which take their arguments from the stack.
 
 TODO: Expand?
 
-**Unary**:
+**Unary:**
 ```
 (x . s) e (OP . c) d => (OP(x) . s) e c d
 ```
@@ -190,7 +190,7 @@ CAR  - Returns the head of a list
 CDR  - Returns the tail of a list
 ```
 
-**Binary**:
+**Binary:**
 ```
 (x y . s) e (OP . c) d => (OP(x,y) . s) e c d
 ```
@@ -213,14 +213,14 @@ LTE  - Less than or equal to
 
 ### Branching Instructions
 
-**SEL**:
+**SEL:**
 ```
 (x . s) e (SEL then else . c) d => s e c? (c . d)
 
 where c? is (if (not= x 0) then else)
 ```
 
-**JOIN**:
+**JOIN:**
 ```
 s e (JOIN . c) (c' . d) => s e c' d
 ```
@@ -229,30 +229,30 @@ s e (JOIN . c) (c' . d) => s e c' d
 
 Explain closures.
 
-**LDF**:
+**LDF:**
 ```
 s e (LDF f . c) => ([f e] . s) e c d
 ```
 
-**AP**:
+**AP:**
 ```
 ([f e'] v . s) e (AP . c) d => nil (v . e') f (s e c . d)
 ```
 
-**RTN**:
+**RTN:**
 ```
 (x . z) e' (RTN . q) (s e c . d) => (x . s) e c d
 ```
 
 ### Recursive Function Instructions
 
-**DUM**:
+**DUM:**
 ```
 s e (DUM . c) d => s (nil . e) c d
 ```
 nil is replaced by an atom in the Clojure implementation
 
-**RAP**:
+**RAP:**
 ```
 ([f (nil.e)] v . s) (nil . e) (RAP . c) d
 =>
