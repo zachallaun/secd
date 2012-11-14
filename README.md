@@ -34,7 +34,7 @@ continues until the `STOP` instruction is reached.
 we'll see, allows us to create `JUMP`-like instructions without "losing
 our place" in execution.
 
-### Axiomatic Semantics
+## Axiomatic Semantics
 
 Axiomatic Semantics is an approach to describing programs in terms of
 changes in state &mdash; not in terms of implementation. SECD
@@ -44,7 +44,7 @@ implementation of the SECD machine is largely functional, and does not
 rely on linked-lists. Values and registers are, for the most part,
 immutable.)
 
-#### An Axiomatic Notation for SECD
+### An Axiomatic Notation for SECD
 
 I will borrow Kogge's notation. Given a machine state, the next state of
 the machine can be described in terms of transformations to the
