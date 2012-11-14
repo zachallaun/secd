@@ -185,8 +185,7 @@ with the result of the operation.)
 
 Examples of unary built-ins:
 ```
-ATOM - Returns 1 if its argument isn't a composite value (like a list),
-else 0
+ATOM - Returns 1 if its argument isn't a composite value (like a list), else 0
 NULL - Returns 1 if its argument is nil or the empty list, else 0
 CAR  - Returns the head of a list
 CDR  - Returns the tail of a list
