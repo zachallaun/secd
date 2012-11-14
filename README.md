@@ -4,6 +4,10 @@ A silly implementation of the
 [SECD machine](https://en.wikipedia.org/wiki/SECD_machine), adapted from
 _The Architecture of Symbolic Computers_.
 
+## Ideas
+
+Examples and exercises using the Clojure SECD
+
 ## A Guide to SECD
 
 The SECD machine is a virtual machine created by Peter Landin (of _Next
@@ -119,27 +123,92 @@ STOP   - Stop execution
 ```
 s e (NIL . c) d => (nil . s) e c d
 ```
+`NIL` is the simplest SECD instruction. It pushes `nil` onto the stack.
+In SECD-land, `nil` is also the empty list. We'll use `NIL` before we
+have to build up an argument list, for example, and then `cons` elements
+onto it. Stay tuned.
 
-**LDC**:
+**LDC &mdash; Load constant**:
 ```
 s e (LDC x . c) d => (x . s) e c d
 ```
+`LDC` loads the next value from the code register onto the stack. For
+instance, `s e (LDC 1 . c) d` would load the value 1 onto the stack. `s e
+(LDC (1 2 3) . c) d` would load the list `(1 2 3)`.
 
 **LD**:
 ```
-s e (LD [x y] . c) d => (locate([x y]) . s) e c d
+s e (LD [y x] . c) d => (locate([y x], e) . s) e c d
+```
+`LD` loads a value from the current environment. I think now is a good
+time for a quick aside about the environment register.
+
+Like the other registers, the environment is a list. In fact, it's a
+list of lists, and each list contained represents a scope. A possible
+environment, for instance, may look like this:
+
+```
+((0  1  2)
+ (10 11 12)
+ (20 21 22)
+ (30 31 32))
 ```
 
+The earlier in the environment a list of values appears, the "closer" it
+is in scope. During the execution of a function, for instance, arguments
+to that function will be at the top of the environment. If that function
+is inside another function, the arguments to that enclosing function
+will be at index 1, and so on and so forth.
+
+The `locate` function used in `LD`, then, suddenly makes sense: it
+accepts a pair of coordinates and indexes into the 2-dimensional
+environment. If we called the previous example environment `e`,
+`locate([2 1], e)` would return the number 21.
+
 ### Built-ins
+
+Like all virtual machines, the SECD machine assumes a number of built-in
+operations which take their arguments from the stack.
+
+TODO: Expand?
 
 **Unary**:
 ```
 (x . s) e (OP . c) d => (OP(x) . s) e c d
 ```
+Unary built-ins take one argument from the stack, evaluate the built-in
+with that argument, and push the return value back on. (Notice that the
+original argument as "disappeared" from the stack, and been replaced
+with the result of the operation.)
+
+Examples of unary built-ins:
+```
+ATOM - Returns 1 if its argument isn't a composite value (like a list),
+else 0
+NULL - Returns 1 if its argument is nil or the empty list, else 0
+CAR  - Returns the head of a list
+CDR  - Returns the tail of a list
+```
 
 **Binary**:
 ```
 (x y . s) e (OP . c) d => (OP(x,y) . s) e c d
+```
+Binary built-ins are exactly like their unary counterparts, except that
+they take two arguments from the stack.
+
+Examples of binary built-ins:
+```
+CONS - Prepend an item onto a list, returning the list
+ADD  - Addition
+SUB  - Subtraction
+MTY  - Multiplication
+DIV  - Division
+EQ   - Equality of atoms
+GT   - Greater than
+LT   - Less than
+GTE  - Greater than or equal to
+LTE  - Less than or equal to
 ```
 
 ### Branching Instructions
