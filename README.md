@@ -263,6 +263,10 @@ Some simple SECD examples using what we've learned, in Clojure:
 
 ### Branching Instructions
 
+Now that we know how to use some simple instructions, let's take a look
+at some _useful_ instructions: `SEL` and `JOIN`, which together give us
+something akin to `if-then-else`.
+
 **SEL:**
 ```
 (x . s) e (SEL then else . c) d => s e c? (c . d)
