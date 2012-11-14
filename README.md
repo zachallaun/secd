@@ -155,7 +155,7 @@ environment, for instance, may look like this:
 ```
 
 The earlier in the environment a list of values appears, the "closer" it
-is in scope. During the execution of a function, for instance, arguments
+is in scope. During the execution of a function, arguments
 to that function will be at the top of the environment. If that function
 is inside another function, the arguments to that enclosing function
 will be at index 1, and so on and so forth.
@@ -164,6 +164,8 @@ The `locate` function used in `LD`, then, suddenly makes sense: it
 accepts a pair of coordinates and indexes into the 2-dimensional
 environment. If we called the previous example environment `e`,
 `locate([2 1], e)` would return the number 21.
+
+TODO: More clear explanation
 
 ### Built-ins
 
