@@ -212,6 +212,55 @@ GTE  - Greater than or equal to
 LTE  - Less than or equal to
 ```
 
+### Some Simple Examples
+
+Some simple SECD examples using what we've learned, in Clojure:
+```clj
+;; do-secd accepts a vector representing the code register, and
+;; recursively evaluates instructions until none are left. The value at
+;; the top of the stack is returned.
+
+(do-secd [NIL])
+;;=> nil
+
+(do-secd [LDC 1337])
+;;=> 1337
+
+;; (cons 1337 nil)
+(do-secd [NIL LDC 1337 CONS])
+;;=> (1337)
+
+;; (cons 2448 (cons 1337 nil))
+(do-secd [NIL
+          LDC 1337 CONS
+          LDC 2448 CONS])
+;;=> (2448 1337)
+
+;; (car (cons 2448 (cons 1337 nil)))
+(do-secd [NIL
+          LDC 1337 CONS
+          LDC 2448 CONS
+          CAR])
+;;=> 2448
+
+;; (+ 5 5)
+(do-secd [LDC 5 LDC 5 ADD])
+;;=> 10
+
+;; (- 20 (+ 5 5))
+(do-secd [LDC 5 LDC 5 ADD
+          LDC 20
+          SUB])
+;;=> 10
+
+;; (atom 1)
+(do-secd [LDC 1 ATOM])
+;;=> true
+;; Note that the Clojure SECD implementation uses Clojure's true and
+;; false to represent boolean values, instead of the traditional SECD 1
+;; and 0.
+```
+
 ### Branching Instructions
 
 **SEL:**
