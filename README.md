@@ -82,6 +82,120 @@ something similar to the following:
 
 ## The Instruction Set
 
+For reference, the instructions we will cover are as follows:
+
+```
+Basic instructions:
+NIL    - Nil
+LDC    - Load constant
+LD     - Load (from environment)
+
+Built-ins:
+CAR, CDR, ATOM, et al. -  Unary built-in operations
+ADD, SUB, CONS, et al. -  Binary built-in operations
+
+Branching instructions:
+SEL    - Select
+JOIN   - Join
+
+Non-recursive function instructions:
+LDF    - Load function
+AP     - Apply
+RTN    - Return
+
+Recursive function instructions:
+DUM    - Dummy
+RAP    - Recursive apply
+
+Auxiliary instructions:
+READC  - Read character
+WRITEC - Write character
+STOP   - Stop execution
+```
+
+### Basic Instructions
+
+**NIL**:
+```
+s e (NIL . c) d => (nil . s) e c d
+```
+
+**LDC**:
+```
+s e (LDC x . c) d => (x . s) e c d
+```
+
+**LD**:
+```
+s e (LD [x y] . c) d => (locate([x y]) . s) e c d
+```
+
+### Built-ins
+
+**Unary**:
+```
+(x . s) e (OP . c) d => (OP(x) . s) e c d
+```
+
+**Binary**:
+```
+(x y . s) e (OP . c) d => (OP(x,y) . s) e c d
+```
+
+### Branching Instructions
+
+**SEL**:
+```
+(x . s) e (SEL then else . c) d => s e c? (c . d)
+
+where c? is (if (not= x 0) then else)
+```
+
+**JOIN**:
+```
+s e (JOIN . c) (c' . d) => s e c' d
+```
+
+### Non-recursive Function Instructions
+
+Explain closures.
+
+**LDF**:
+```
+s e (LDF f . c) => ([f e] . s) e c d
+```
+
+**AP**:
+```
+([f e'] v . s) e (AP . c) d => nil (v . e') f (s e c . d)
+```
+
+**RTN**:
+```
+(x . z) e' (RTN . q) (s e c . d) => (x . s) e c d
+```
+
+### Recursive Function Instructions
+
+**DUM**:
+```
+s e (DUM . c) d => s (nil . e) c d
+```
+nil is replaced by an atom in the Clojure implementation
+
+**RAP**:
+```
+([f (nil.e)] v . s) (nil . e) (RAP . c) d
+=>
+nil (rplaca((nil . e), v) . e) f (s e c . d)
+```
+
+### Auxiliary Instructions
+
+**WRITEC**
+**READC**
+**STOP**
+
 ## Writing Simple SECD Programs
 
 ## The SECD "Hello, world" &mdash; Recursion
@@ -89,6 +203,8 @@ something similar to the following:
 ## Means of Abstraction
 
 Higher order functions?
+
+Map, Reduce, Filter
 
 ## SECD as a Compilation Target
 
