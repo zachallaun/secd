@@ -1,7 +1,7 @@
-(ns secd.core-test
+(ns secd.machine-test
   (:use midje.sweet
         secd.test-helpers
-        secd.core))
+        secd.machine))
 
 (def stack-is (structure-checker (comp :stack)))
 (def fstack-is (structure-checker (comp first :stack)))

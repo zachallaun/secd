@@ -1,5 +1,5 @@
 (ns secd.benchmark
-  (:use [secd.core]))
+  (:use [secd.machine]))
 
 (comment
 

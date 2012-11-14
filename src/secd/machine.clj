@@ -1,4 +1,4 @@
-(ns secd.core
+(ns secd.machine
   (:require [secd.util :as util]))
 
 (defrecord Registers [stack env code dump])
