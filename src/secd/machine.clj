@@ -17,16 +17,14 @@
 (defmacro definstruct
   "Defines an instruction that executes change on SECD registers.
 
-  A single binding for the registers is expected. Destructured values will be
-  bound to the actual register atoms.
+  A vector of four bindings corresponding to the stack, env, code and dump
+  registers is expected.
 
-  The body of a definstruct is expected to return a map of register-names to
-  update values that will be used to update the registers. The full set of
-  registers will always be returned.
+  The body of a definstruct is expected to return a new set of SECD registers.
 
   ex.
-    (definstruct :nil {:keys [stack] :as regs}
-      {:stack (cons nil @stack)})"
+    (definstruct NIL [s e c d]
+      (->Registers (cons nil s) e c d))"
   [op register-bindings & body]
   (let [register-bindings (zipmap register-bindings [:stack :env :code :dump])]
     `(do (defrecord ~(record-name op) []
