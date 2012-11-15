@@ -61,27 +61,29 @@ s e c d => s' e' c' d'
 where `s`, `e`, `c`, and `d` represent the initial state of each
 register, and the primes represent the new states.
 
+TODO: Formalize list dot notation
+
 While the single letter `s` is taken to represent any possible
 configuration of the stack register, we also need a way to match on more
 specific states. Since each register is a list, we can _destructure_
 registers to match on internal components.
 
-`(123 . s)` matches the configuration where the top item of the stack is
+`(123.s)` matches the configuration where the top item of the stack is
 the value 123.
 
-`(x y . s) e (ADD . c) d` matches the register configuration where the
+`(x y.s) e (ADD.c) d` matches the register configuration where the
 `ADD` instruction is on the top of the code register, and at least two
 items, `x` and `y`, are on the stack.
 
 Note that the `.` (period) inside of a list can be read as, "and the
-rest," such that `(x y . s)` can be read as, "any x, any y, and the rest
+rest," such that `(x y.s)` can be read as, "any x, any y, and the rest
 of the stack."
 
 Given this, an instruction `FOO` can be described axiomatically using
 something similar to the following:
 
 ```
-(x . s) e (FOO . c) d => (bar . s) e c d
+(x.s) e (FOO.c) d => (bar.s) e c d
 ```
 
 ## The Instruction Set
@@ -121,7 +123,7 @@ STOP   - Stop execution
 
 **NIL:**
 ```
-s e (NIL . c) d => (nil . s) e c d
+s e (NIL.c) d => (nil.s) e c d
 ```
 `NIL` is the simplest SECD instruction. It pushes `nil` onto the stack.
 In SECD-land, `nil` is also the empty list. We'll use `NIL` before we
@@ -130,15 +132,15 @@ onto it. Stay tuned.
 
 **LDC &mdash; Load constant:**
 ```
-s e (LDC x . c) d => (x . s) e c d
+s e (LDC x.c) d => (x.s) e c d
 ```
 `LDC` loads the next value from the code register onto the stack. For
 instance, `s e (LDC 1 . c) d` would load the value 1 onto the stack. `s e
-(LDC (1 2 3) . c) d` would load the list `(1 2 3)`.
+(LDC (1 2 3).c) d` would load the list `(1 2 3)`.
 
 **LD &mdash; Load from environment:**
 ```
-s e (LD [y x] . c) d => (locate([y x], e) . s) e c d
+s e (LD [y x].c) d => (locate([y x], e).s) e c d
 ```
 `LD` loads a value from the current environment. I think now is a good
 time for a quick aside about the environment register.
@@ -176,7 +178,7 @@ TODO: Expand?
 
 **Unary:**
 ```
-(x . s) e (OP . c) d => (OP(x) . s) e c d
+(x.s) e (OP.c) d => (OP(x).s) e c d
 ```
 Unary built-ins take one argument from the stack, evaluate the built-in
 with that argument, and push the return value back on. (Notice that the
@@ -196,7 +198,7 @@ Clojure's `true` and `false` for clarity and simplicity.
 
 **Binary:**
 ```
-(x y . s) e (OP . c) d => (OP(x,y) . s) e c d
+(x y.s) e (OP.c) d => (OP(x,y).s) e c d
 ```
 Binary built-ins are exactly like their unary counterparts, except that
 they take two arguments from the stack.
@@ -269,14 +271,14 @@ something akin to `if-then-else`.
 
 **SEL:**
 ```
-(x . s) e (SEL ct cf . c) d => s e c? (c . d)
+(x.s) e (SEL ct cf.c) d => s e c? (c.d)
 where c? is (if (not= x false) ct cf)
 ```
 
 
 **JOIN:**
 ```
-s e (JOIN . c) (c' . d) => s e c' d
+s e (JOIN.c) (c'.d) => s e c' d
 ```
 
 ### Non-recursive Function Instructions
@@ -285,32 +287,32 @@ Explain closures.
 
 **LDF:**
 ```
-s e (LDF f . c) => ([f e] . s) e c d
+s e (LDF f.c) => ([f e].s) e c d
 ```
 
 **AP:**
 ```
-([f e'] v . s) e (AP . c) d => nil (v . e') f (s e c . d)
+([f e'] v.s) e (AP.c) d => nil (v.e') f (s e c.d)
 ```
 
 **RTN:**
 ```
-(x . z) e' (RTN . q) (s e c . d) => (x . s) e c d
+(x.z) e' (RTN.q) (s e c.d) => (x.s) e c d
 ```
 
 ### Recursive Function Instructions
 
 **DUM:**
 ```
-s e (DUM . c) d => s (nil . e) c d
+s e (DUM.c) d => s (nil.e) c d
 ```
 nil is replaced by an atom in the Clojure implementation
 
 **RAP:**
 ```
-([f (nil.e)] v . s) (nil . e) (RAP . c) d
+([f (nil.e)] v.s) (nil.e) (RAP.c) d
 =>
-nil (rplaca((nil . e), v) . e) f (s e c . d)
+nil (rplaca((nil.e), v).e) f (s e c.d)
 ```
 
 ### Auxiliary Instructions
