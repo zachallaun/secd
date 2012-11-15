@@ -269,9 +269,10 @@ something akin to `if-then-else`.
 
 **SEL:**
 ```
-(x . s) e (SEL then else . c) d => s e c? (c . d)
-where c? is (if (not= x false) then else)
+(x . s) e (SEL ct cf . c) d => s e c? (c . d)
+where c? is (if (not= x false) ct cf)
 ```
+
 
 **JOIN:**
 ```
