@@ -8,3 +8,8 @@ pom.xml
 .lein-deps-sum
 .lein-failures
 .lein-plugins
+.generated
+.lein-cljsbuild-compiler-0
+.lein-cljsbuild-repl
+js-out
+out
