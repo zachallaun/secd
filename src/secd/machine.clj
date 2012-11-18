@@ -52,6 +52,10 @@
 (definstruct LD [s e c d]
   (->Registers (cons (apply locate e (first c)) s) e (rest c) d))
 
+;; (definstruct LD
+;;   s e ([i j] . c) d => (x . s) e c d
+;;   :where [x (locate e i j)])
+
 ;; (x.s) e (OP.c) d => ((OP x).s) e c d
 (defmacro defunary
   [op f]
@@ -91,9 +95,16 @@
         result (if-not (false? test) then else)]
     (->Registers (rest s) e result (cons more d))))
 
+;; (definstruct SEL
+;;   (x . s) e (ct cf . c) d => s e c? (c . d)
+;;   :where [c? (if-not (false? x) ct cf)])
+
 ;; s e (JOIN.c) (cr.d) => s e cr d
 (definstruct JOIN [s e c d]
   (->Registers s e (first d) (rest d)))
+
+;; (definstruct JOIN
+;;   s e c (cr . d) => s e cr d)
 
 ;; (x.s) e (TEST ct.c) d => s e c? d
 ;; where c? is (if x ct c)
@@ -141,6 +152,12 @@
         old-e e]
     (reset! (first e) args)
     (->Registers () e function (concat [more old-e c] d))))
+
+;; (definstruct RAP
+;;   ([f context] v . s) context c d
+;;   => nil (context . e) f (s e c . d)
+;;   :where
+;;   [_ (reset! context v)])
 
 ;; (x.s) e (WRITEC.c d => s e c d, where x is a char printed to output
 (definstruct WRITEC [s e c d]
