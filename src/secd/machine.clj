@@ -1,5 +1,6 @@
 (ns secd.machine
-  (:require [secd.util :as util]))
+  (:require [secd.util :as util]
+            [clojure.walk :as walk]))
 
 (defrecord Registers [stack env code dump])
 
@@ -11,35 +12,46 @@
 (defprotocol Instruction
   (run [this registers] "Run the instruction and return a new set of registers."))
 
-(defn- record-name [sym] (symbol (str sym "-I")))
-(defn- constructor [sym] (symbol (str "->" sym "-I")))
+(defn- record-name [sym] (symbol (str (name sym) "-I")))
+(defn- constructor [sym] (symbol (str "->" (name sym) "-I")))
+
+(defn expand-concats [forms]
+  (for [form forms]
+    (if (and (coll? form) (some #{'.} form))
+      (let [[xs _ [more]] (partition-by #{'.} form)]
+        `(concat ~(vec xs) ~more))
+      form)))
+
+(defn desugar-body [b]
+  (let [[body _ where] (partition-by #{:where} b)
+        [before _ after] (partition-by #(and (symbol? %) (= "=>" (name %))) body)
+        before (walk/prewalk-replace {'. '&} before)
+        after `(->Registers ~@(expand-concats after))]
+    `(fn ~(vec before)
+        ~(if where
+           `(let ~(first where)
+              ~after)
+           after))))
 
 (defmacro definstruct
-  "Defines an instruction that executes change on SECD registers.
-
-  A vector of four bindings corresponding to the stack, env, code and dump
-  registers is expected.
-
-  The body of a definstruct is expected to return a new set of SECD registers.
-
-  ex.
-    (definstruct NIL [s e c d]
-      (->Registers (cons nil s) e c d))"
-  [op register-bindings & body]
-  (let [register-bindings (zipmap register-bindings [:stack :env :code :dump])]
+  "Defines a register transformation."
+  [op & body]
+  (let [bindings (repeatedly 4 gensym)
+        register-bindings (zipmap bindings
+                                  [:stack :env :code :dump])
+        body (desugar-body (vec body))]
     `(do (defrecord ~(record-name op) []
            ~'Instruction
            (~'run [_# ~register-bindings]
-             ~@body))
+             (~body
+              ~@bindings)))
          (def ~op (~(constructor op))))))
 
-;; s e (NIL.c) d => (nil.s) e c d
-(definstruct NIL [s e c d]
-  (->Registers (cons nil s) e c d))
+(definstruct NIL
+  s e c d => [nil . s] e c d)
 
-;; s e (LDC x.c) d => (x.s) e c d
-(definstruct LDC [s e c d]
-  (->Registers (cons (first c) s) e (rest c) d))
+(definstruct LDC
+  s e [x . c] d => [x . s] e c d)
 
 (defn locate
   [env x y]
@@ -48,33 +60,26 @@
                   @inner inner)]
     (nth derefed y)))
 
-;; s e (LD [i j].c) d => ((locate e i j).s) e c d
-(definstruct LD [s e c d]
-  (->Registers (cons (apply locate e (first c)) s) e (rest c) d))
+(definstruct LD
+  s e [[i j] . c] d => (x . s) e c d
+  :where [x (locate e i j)])
 
-;; (definstruct LD
-;;   s e ([i j] . c) d => (x . s) e c d
-;;   :where [x (locate e i j)])
-
-;; (x.s) e (OP.c) d => ((OP x).s) e c d
 (defmacro defunary
   [op f]
-  `(definstruct ~op [~'stack ~'env ~'code ~'dump]
-     (~'->Registers (cons (~f (first ~'stack)) (rest ~'stack))
-                    ~'env ~'code ~'dump)))
+  `(definstruct ~op
+     [x# . s#] e# c# d# => [x'# . s#] e# c# d#
+     :where [x'# (~f x#)]))
 
 (defunary ATOM (complement coll?))
 (defunary NULL #(if (coll? %) (empty? %) (nil? %)))
 (defunary CAR first)
 (defunary CDR rest)
 
-;; (x y.s) e (OP.c) d => ((OP x y).s) e c d
 (defmacro defbinary
   [op f]
-  `(definstruct ~op [~'stack ~'env ~'code ~'dump]
-     (let [[a# b# & stack#] ~'stack]
-       (~'->Registers (cons (~f a# b#) stack#)
-                      ~'env ~'code ~'dump))))
+  `(definstruct ~op
+     [x# y# . s#] e# c# d# => [z# . s#] e# c# d#
+     :where [z# (~f x# y#)]))
 
 (defbinary CONS cons)
 (defbinary ADD +)
@@ -87,82 +92,43 @@
 (defbinary GTE >=)
 (defbinary LTE <=)
 
-;; (x.s) e (SEL then else.c) d => s e c? (c.d)
-;; where c? is (if x then else)
-(definstruct SEL [s e c d]
-  (let [test (first s)
-        [then else & more] c
-        result (if-not (false? test) then else)]
-    (->Registers (rest s) e result (cons more d))))
+(definstruct SEL
+  [x . s] e [ct cf . c] d => s e c? [c . d]
+  :where [c? (if-not (false? x) ct cf)])
 
-;; (definstruct SEL
-;;   (x . s) e (ct cf . c) d => s e c? (c . d)
-;;   :where [c? (if-not (false? x) ct cf)])
+(definstruct JOIN
+  s e c [cr . d] => s e cr d)
 
-;; s e (JOIN.c) (cr.d) => s e cr d
-(definstruct JOIN [s e c d]
-  (->Registers s e (first d) (rest d)))
+(definstruct TEST
+  [x . s] e [ct . c] d => s e c? d
+  :where [c? (if-not (false? x) ct c)])
 
-;; (definstruct JOIN
-;;   s e c (cr . d) => s e cr d)
+(definstruct AA
+  [v . s] e c d => s [v . e] c d)
 
-;; (x.s) e (TEST ct.c) d => s e c? d
-;; where c? is (if x ct c)
-(definstruct TEST [s e c d]
-  (let [test (first s)
-        [then & else] c
-        result (if-not (false? test) then else)]
-    (->Registers (rest s) e result d)))
+(definstruct LDF
+  s e [f . c] d => [[f e] . s] e c d)
 
-;; (v.s) e (AA.c) d => s (v.e) c d
-(definstruct AA [s e c d]
-  (->Registers (rest s) (cons (first s) e) c d))
+(definstruct AP
+  [[f e'] v . s] e c d => nil [v . e'] f [s e c . d])
 
-;; s e (LDF f.c) d => ([f e].s) e c d
-(definstruct LDF [s e c d]
-  (->Registers (cons [(first c) e] s) e (rest c) d))
+(definstruct DAP
+  [[f e'] v . s] e c d => nil [v . e'] f d)
 
-;; ([f e'] v.s) e (AP.c) d => nil (v.e') f (s e c.d)
-(definstruct AP [s e c d]
-  (let [[closure args & more] s
-        [function context] closure]
-    (->Registers () (cons args context) function (concat [more e c] d))))
+(definstruct RTN
+  [x . z] e' q [s e c . d] => [x . s] e c d)
 
-;; DAP :: Direct APply leaves dump alone
-;; ([f e'] v.s) e (DAP.c) d => nil (v.e') f d
-(definstruct DAP [s e c d]
-  (let [[closure args & more] s
-        [function context] closure]
-    (->Registers () (cons args context) function d)))
+(definstruct DUM
+  s e c d => s [dum . e] c d
+  :where [dum (atom ())])
 
-;; (x.z) e' (RTN.q) (s e c.d) => (x.s) e c d
-(definstruct RTN [stack env code dump]
-  (let [[s e c & d] dump]
-    (->Registers (cons (first stack) s) e c d)))
+(definstruct RAP
+  [[f context] v . s] e c d => nil e f [s e c . d]
+  :where [_ (reset! (first e) v)])
 
-;; s e (DUM.c) d => s ((atom nil).e) c d
-(definstruct DUM [s e c d]
-  (->Registers s (cons (atom ()) e) c d))
-
-;; ([f (nil.e)] v.s) (nil.e) (RAP.c) d =>
-;; nil (rplaca((nil.e), v).e) f (s e c.d)
-(definstruct RAP [s e c d]
-  (let [[closure args & more] s
-        [function context] closure
-        old-e e]
-    (reset! (first e) args)
-    (->Registers () e function (concat [more old-e c] d))))
-
-;; (definstruct RAP
-;;   ([f context] v . s) context c d
-;;   => nil (context . e) f (s e c . d)
-;;   :where
-;;   [_ (reset! context v)])
-
-;; (x.s) e (WRITEC.c d => s e c d, where x is a char printed to output
-(definstruct WRITEC [s e c d]
-  (print (char (first s)))
-  (->Registers (rest s) e c d))
+(definstruct WRITEC
+  [x . s] e c d => s e c d
+  :where [_ (print (char x))])
 
 (defn do-secd*
   ([code]
