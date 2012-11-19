@@ -17,10 +17,6 @@
       => (map-similar-to {:stack (atom '(:a :b :c)) :env (atom ())
                           :code (atom ()) :dump (atom ())}))
 
-(fact "about definstruct return value"
-      (definstruct BAR {} {})
-      (run BAR (secd-registers)) => truthy)
-
 (fact "about NIL instruction"
       (run NIL (secd-registers)) => (fstack-is nil))
 
@@ -99,14 +95,15 @@
 
 (fact "about AA add-arguments instruction"
       (run AA (secd-registers :stack '(:args)))
-      => (andfn (stack-is ())
+      => (andfn (some-fn (stack-is ()) (stack-is nil))
                 (env-is '(:args))))
 
 (fact "about LDF instruction"
       (run LDF (secd-registers :code '(:fn-instructions) :env '(:context)))
       => (map-similar-to
           (secd-registers :stack '([:fn-instructions (:context)])
-                          :env '(:context))))
+                          :env '(:context)
+                          :code nil)))
 
 (fact "about AP instruction"
       (let [registers (secd-registers :stack '([:fn-instructions (:context)]
@@ -115,13 +112,14 @@
         => (map-similar-to
             (secd-registers :env '(:args :context)
                             :code :fn-instructions
-                            :dump '((:rest) () ())))))
+                            :dump '((:rest) () ())
+                            :stack nil))))
 
 (fact "about DAP direct apply instruction"
       (let [registers (secd-registers :stack '([:fn-instructions (:context)]
                                                  :args :rest))]
         (run DAP registers)
-        => (andfn (stack-is ())
+        => (andfn (some-fn (stack-is ()) (stack-is nil))
                   (env-is '(:args :context))
                   (code-is :fn-instructions)
                   (dump-is ()))))
@@ -155,17 +153,13 @@
               (secd-registers :stack [[:fn [dum]] [:arg] :rest]
                               :env [dum])]
           (run RAP registers)
-          => (andfn (stack-is ())
+          => (andfn (some-fn (stack-is ()) (stack-is nil))
                     (env-is [dum])
                     (code-is :fn)
                     (dump-is ['(:rest) [dum] ()])))))
 
 (fact "about WRITEC instruction"
-      (with-out-str
-        (run WRITEC (secd-registers :stack [65])))
-      => "A"
-
-      (run WRITEC (secd-registers :stack [65])) => (secd-registers))
+      (with-out-str (run WRITEC (secd-registers :stack [65]))) => "A")
 
 (fact "about do-secd* optional n-instructions argument"
       (do-secd* 1 [NIL NIL NIL]) => (andfn (stack-is [nil])
