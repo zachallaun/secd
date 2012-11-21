@@ -274,11 +274,39 @@ something akin to `if-then-else`.
 (x.s) e (SEL ct cf.c) d => s e c? (c.d)
 where c? is (if (not= x false) ct cf)
 ```
-
+`SEL` expects to be followed by two other code lists representing the
+_then_ and _else_ branches of the statement (here seen as `ct`
+and `cf`). `SEL` then checks the top item on the stack, replacing the
+code register with `ct` if that item is not false and with `cf` if it
+is. The remainder of the code register following the two branches, `c`,
+is pushed onto the dump, where it can be recovered later.
 
 **JOIN:**
 ```
 s e (JOIN.c) (c'.d) => s e c' d
+```
+`JOIN` is used to return control to the code register saved during the
+`SEL`. It is expected, then, that the `ct` and `cf` code lists seen
+above end with `JOIN`.
+
+**Trivial branching examples:**
+
+```clj
+;; (if (= 0 (- 1 1)) true false)
+(do-secd [LDC 1 LDC 1 SUB   ;; (- 1 1)
+          LDC 0 EQ          ;; (= 0 0)
+          SEL
+          [LDC true JOIN]   ;; then-branch
+          [LDC false JOIN]] ;; else-branch
+;;=> true
+
+;; (+ 10 (if (nil? nil) 10 20))
+(do-secd [NIL NULL
+          SEL
+          [LDC 10 JOIN]
+          [LDC 20 JOIN]
+          LDC 10 ADD]
+;;=> 20
 ```
 
 ### Non-recursive Function Instructions
