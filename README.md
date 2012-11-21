@@ -391,6 +391,11 @@ nil (rplaca((nil.e), v).e) f (s e c.d)
 
 ## Optimizations &mdash; Extending the Instruction Set
 
+**TEST**
+**DAP**
+**AA**
+**MA**
+
 ## Means of Abstraction
 
 Building reduce, map, and filter.
@@ -420,17 +425,16 @@ Building reduce, map, and filter.
 ```clj
 (def secd-reduce          ;; fn args: [f acc sequence]
   [LD [0 2] NULL          ;; load sequence, check if null
-   SEL [LD [0 1] JOIN]    ;; if null, load acc and return
-       [NIL               ;; build args for recur
-        LD [0 2] CDR CONS ;; cons (rest sequence) onto recur argslist
-        NIL               ;; build args for calling f
-        LD [0 2] CAR CONS ;; cons first(sequence) onto f argslist
-        LD [0 1] CONS     ;; cons acc onto f argslist
-        LD [0 0] AP       ;; load f and apply
-        CONS              ;; cons result onto recur argslist
-        LD [0 0] CONS     ;; cons f onto recur argslist
-        LD [1 0] AP       ;; load recursive fn and apply
-        JOIN]
+   TEST [LD [0 1] RTN]    ;; if null, load acc and return
+   NIL                    ;; build args for recur
+   LD [0 2] CDR CONS      ;; cons (rest sequence) onto recur argslist
+   NIL                    ;; build args for calling f
+   LD [0 2] CAR CONS      ;; cons first(sequence) onto f argslist
+   LD [0 1] CONS          ;; cons acc onto f argslist
+   LD [0 0] AP            ;; load f and apply
+   CONS                   ;; cons result onto recur argslist
+   LD [0 0] CONS          ;; cons f onto recur argslist
+   LD [1 0] DAP           ;; load recursive fn and apply
    RTN])
 
 (def secd-add [LD [0 1] LD [0 0] ADD RTN])
@@ -456,7 +460,7 @@ Building reduce, map, and filter.
              CONS
              RTN]
         CONS
-        LD [0 0] AP RTN]
+        LD [0 0] DAP RTN]
    RAP])
 
 (do-secd [NIL LDC [0 1 2 3 4] CONS
@@ -500,11 +504,10 @@ Building reduce, map, and filter.
         LDF [NIL LD [0 1] CONS ;; load reduce item and cons onto
                                ;; args for condition
              LD [2 0] AP       ;; load condition and apply
-             SEL [LD [0 0]
-                  LD [0 1]
-                  CONS JOIN]
-                 [LD [0 0] JOIN]
-             RTN]
+             TEST [LD [0 0]
+                   LD [0 1]
+                   CONS RTN]
+             LD [0 0] RTN]
         CONS
         LD [0 0] AP
         CONS
