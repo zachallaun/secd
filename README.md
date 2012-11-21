@@ -389,6 +389,24 @@ nil (rplaca((nil.e), v).e) f (s e c.d)
 
 ## The SECD "Hello, world" &mdash; Recursion
 
+```clj
+;; This is obviously not hello world, but it should be
+(def hello-world [72 101 108 108 111 44 32 119 111 114 108 100 33 10])
+
+(do-secd [NIL DUM
+          LDF [LD [0 0] NULL
+               TEST [RTN]
+               LD [0 0] CAR WRITEC
+               NIL LD [0 0] CDR CONS
+               LD [1 0] AP
+               RTN]
+          CONS
+          LDF [NIL LDC hello-world CONS
+               LD [0 0] AP RTN]
+          RAP])
+;; prints "Hello, world!"
+```
+
 ## Optimizations &mdash; Extending the Instruction Set
 
 **TEST**
