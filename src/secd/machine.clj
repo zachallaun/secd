@@ -46,6 +46,7 @@
 (defbinary LT <)
 (defbinary GTE >=)
 (defbinary LTE <=)
+(defbinary MOD mod)
 
 (definstruct SEL
   [x . s] e [ct cf . c] d => s e c? [c . d]
