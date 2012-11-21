@@ -393,9 +393,84 @@ nil (rplaca((nil.e), v).e) f (s e c.d)
 
 ## Means of Abstraction
 
-Higher order functions?
+Building reduce, map, and filter.
 
-Map, Reduce, Filter
+```clj
+(defn reduce' [f acc sequence]
+  (if (seq sequence)
+    (recur f (f acc (first sequence)) (rest sequence))
+    acc))
+
+(reduce' + 0 [0 1 2 3 4])
+;;=> 10
+
+(defn map' [f sequence]
+  (reduce' #(conj %1 (f %2)) [] sequence))
+
+(map' inc [0 1 2 3 4])
+;;=> [1 2 3 4 5]
+
+(defn filter' [condition sequence]
+  (reduce' #(if (condition %2) (conj %1 %2) %1) [] sequence))
+
+(filter' even? [0 1 2 3 4])
+;;=> [0 2 4]
+```
+
+```clj
+(def secd-reduce          ;; fn args: [f acc sequence]
+  [LD [0 2] NULL          ;; load sequence, check if null
+   SEL [LD [0 1] JOIN]    ;; if null, load acc and return
+       [NIL               ;; build args for recur
+        LD [0 2] CDR CONS ;; cons (rest sequence) onto recur argslist
+        NIL               ;; build args for calling f
+        LD [0 2] CAR CONS ;; cons first(sequence) onto f argslist
+        LD [0 1] CONS     ;; cons acc onto f argslist
+        LD [0 0] AP       ;; load f and apply
+        CONS              ;; cons result onto recur argslist
+        LD [0 0] CONS     ;; cons f onto recur argslist
+        LD [1 0] AP       ;; load recursive fn and apply
+        JOIN]
+   RTN])
+
+(def secd-add [LD [0 1] LD [0 0] ADD RTN])
+
+(do-secd [DUM NIL
+          LDF secd-reduce CONS
+          LDF [NIL
+               LDC [0 1 2 3 4] CONS
+               LDC 0 CONS
+               LDF secd-add CONS
+               LD [0 0] AP RTN]
+          RAP])
+;;=> 10
+
+(def secd-map
+  [DUM NIL
+   LDF secd-reduce CONS
+   LDF [NIL
+        LD [1 1] CONS
+        NIL CONS
+        LDF [LD [0 0]
+             NIL LD [0 1] CONS
+             LD [2 0] AP
+             CONS
+             RTN]
+        CONS
+        LD [0 0] AP RTN]
+   RAP])
+
+(def secd-inc [LDC 1 LD [0 0] ADD RTN])
+
+(do-secd [NIL
+          LDC [0 1 2 3 4] CONS
+          LDF secd-inc CONS
+          LDF secd-map AP])
+;;=> (5 4 3 2 1)
+;; TODO: map via reduce returns list in reverse order -- can reduce
+;; cons over list to reverse it, but that's pretty inefficient.
+```
+
 
 ## SECD as a Compilation Target
 
