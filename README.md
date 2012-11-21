@@ -269,7 +269,7 @@ Now that we know how to use some simple instructions, let's take a look
 at some _useful_ instructions: `SEL` and `JOIN`, which together give us
 something akin to `if-then-else`.
 
-**SEL:**
+**SEL &mdash; Select branch:**
 ```
 (x.s) e (SEL ct cf.c) d => s e c? (c.d)
 where c? is (if (not= x false) ct cf)
@@ -281,7 +281,7 @@ code register with `ct` if that item is not false and with `cf` if it
 is. The remainder of the code register following the two branches, `c`,
 is pushed onto the dump, where it can be recovered later.
 
-**JOIN:**
+**JOIN &mdash; Join with main control:**
 ```
 s e (JOIN.c) (c'.d) => s e c' d
 ```
@@ -335,30 +335,30 @@ environment register, we can easily create closures by simply packing up
 functions with the environment in which they were defined into a
 `[function context]` pair.
 
-**LDF:**
+**LDF &mdash; Load function:**
 ```
 s e (LDF f.c) => ([f e].s) e c d
 ```
 
-**AP:**
+**AP &mdash; Apply function:**
 ```
 ([f e'] v.s) e (AP.c) d => nil (v.e') f (s e c.d)
 ```
 
-**RTN:**
+**RTN &mdash; Return control:**
 ```
 (x.z) e' (RTN.q) (s e c.d) => (x.s) e c d
 ```
 
 ### Recursive Function Instructions
 
-**DUM:**
+**DUM &mdash; Dummy environment:**
 ```
 s e (DUM.c) d => s (nil.e) c d
 ```
 nil is replaced by an atom in the Clojure implementation
 
-**RAP:**
+**RAP &mdash; Apply recursive function:**
 ```
 ([f (nil.e)] v.s) (nil.e) (RAP.c) d
 =>
