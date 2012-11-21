@@ -311,7 +311,29 @@ above end with `JOIN`.
 
 ### Non-recursive Function Instructions
 
-Explain closures.
+A _function closure_ is a function that retains references to variables
+in-scope during that functions definition, even after the function has
+left that scope. Consider the following Clojure example:
+
+```clj
+(defn alwaysfn [x]
+  (fn [] x))
+
+(def always-five (alwaysfn 5))
+
+(always-five)
+;;=> 5
+```
+In this example, `alwaysfn` establishes a closure around `x` &mdash; the
+function returned from it "remembers" `x`'s value, even though `x` is no
+longer in scope. Because of this, we can say that the returned function
+is _closed over_ `x`.
+
+This is a useful construct, and the SECD machine supports it. Since
+local variables and function arguments are accessible through the
+environment register, we can easily create closures by simply packing up
+functions with the environment in which they were defined into a
+`[function context]` pair.
 
 **LDF:**
 ```
