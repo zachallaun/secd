@@ -445,19 +445,19 @@ Building reduce, map, and filter.
           RAP])
 ;;=> 10
 
-(def secd-map
+(def secd-map                   ;; fn args: [f sequence]
   [DUM NIL
-   LDF secd-reduce CONS
-   LDF [NIL
-        LD [1 1] CONS
-        NIL CONS
-        LDF [LD [0 0]
-             NIL LD [0 1] CONS
-             LD [2 0] AP
-             CONS
+   LDF secd-reduce CONS         ;; load recursive reduce
+   LDF [NIL                     ;; build args for reduce call
+        LD [1 1] CONS           ;; cons sequence onto args
+        NIL CONS                ;; cons nil onto args
+        LDF [LD [0 0]           ;; in fn to reduce, load accumulator
+             NIL LD [0 1] CONS  ;; cons reduce item onto args for f
+             LD [2 0] AP        ;; apply f
+             CONS               ;; cons result onto accumulator
              RTN]
-        CONS
-        LD [0 0] AP RTN]
+        CONS                    ;; cons reduce fn onto reduce args
+        LD [0 0] AP RTN]        ;; load reduce and apply
    RAP])
 
 (def secd-inc [LDC 1 LD [0 0] ADD RTN])
@@ -469,6 +469,35 @@ Building reduce, map, and filter.
 ;;=> (5 4 3 2 1)
 ;; TODO: map via reduce returns list in reverse order -- can reduce
 ;; cons over list to reverse it, but that's pretty inefficient.
+
+(def secd-filter
+  [DUM NIL
+   LDF secd-reduce CONS
+   LDF [NIL
+        LD [1 1] CONS
+        NIL CONS
+        LDF [NIL LD [0 1] CONS ;; load reduce item and cons onto
+                               ;; args for condition
+             LD [2 0] AP       ;; load condition and apply
+             SEL [LD [0 0]
+                  LD [0 1]
+                  CONS JOIN]
+                 [LD [0 0] JOIN]
+             RTN]
+        CONS
+        LD [0 0] AP RTN]
+   RAP])
+
+(def secd-even? [LDC 0
+                 LDC 2 LD [0 0] MOD
+                 EQ RTN])
+
+(do-secd [NIL
+          LDC [0 1 2 3 4] CONS
+          LDF secd-even? CONS
+          LDF secd-filter AP])
+;;=> (4 2 0)
+;; TODO: same reversed results issue as map
 ```
 
 
