@@ -389,6 +389,8 @@ nil (rplaca((nil.e), v).e) f (s e c.d)
 
 ## The SECD "Hello, world" &mdash; Recursion
 
+## Optimizations &mdash; Extending the Instruction Set
+
 ## Means of Abstraction
 
 Higher order functions?
