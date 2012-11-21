@@ -339,16 +339,30 @@ functions with the environment in which they were defined into a
 ```
 s e (LDF f.c) => ([f e].s) e c d
 ```
+`LDF` is used to create the `[function context]` closure, packing up
+some function `f` (just a list of instructions) and the current
+environment into a pair, and pushing it onto the stack.
 
 **AP &mdash; Apply function:**
 ```
 ([f e'] v.s) e (AP.c) d => nil (v.e') f (s e c.d)
 ```
+`AP` does the dirty work, transferring control to the function
+instructions and "installing" that functions arguments and context into
+the environment register. The remaining stack, environment and code
+registers are also pushed onto the dump so that execution can continue
+after the function has executed.
+
+TODO: More in depth here, specifically re: function args
 
 **RTN &mdash; Return control:**
 ```
 (x.z) e' (RTN.q) (s e c.d) => (x.s) e c d
 ```
+A `RTN` instruction is expected at the end of any function list, and is
+used to return a value. When the `RTN` is encountered, the top value of
+the stack (`x`) is saved, registers are restored from the dump, and that
+saved value is pushed onto the restored stack.
 
 ### Recursive Function Instructions
 
