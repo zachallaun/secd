@@ -428,7 +428,25 @@ TODO: Explain general recursive pattern
 
 ## Means of Abstraction
 
-Building reduce, map, and filter.
+As mentioned earlier, the SECD machine is particularly well suited to
+support functional programming languages. It is no surprise, then, that
+common abstractions in such languages can be modeled. One such common
+abstraction is reduce, or fold.
+
+reduce abstracts over recursion
+
+recursion seems abstract in imperative languages, but can be seen as
+relatively "low level" in functional languages
+
+this is because reduce requires a manual handling of a base-case, in the
+same way that a while loop would. Handling it poorly leads to infinite
+recursion.
+
+reduce happens to be a particularly powerful function, and other common
+functions, like map and filter, can be trivially defined in terms of
+reduce.
+
+Defining map and filter in terms of reduce in Clojure:
 
 ```clj
 (defn reduce' [f acc sequence]
@@ -451,6 +469,8 @@ Building reduce, map, and filter.
 (filter' even? [0 1 2 3 4])
 ;;=> [0 2 4]
 ```
+
+Doing the same, but in SECD:
 
 ```clj
 (def secd-reduce          ;; fn args: [f acc sequence]
