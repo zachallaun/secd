@@ -389,13 +389,25 @@ nil (rplaca((nil.e), v).e) f (s e c.d)
 
 ## The SECD "Hello, world" &mdash; Recursion
 
+In many modern languages, _Hello, world_ is basically the simplest a
+program can get. In SECD-land, this is not so. We don't have a
+`println` &mdash; we only have `WRITEC` &mdash; so we have to define our
+own `println` first!
+
+The function is quite simple, really. It will accept one argument, a
+list of integers (our model of characters), print the first character
+from the list, and recurse with the tail. Once the sequence is empty,
+we'll print a newline character.
+
+TODO: Explain general recursive pattern
+
 ```clj
 ;; This is obviously not hello world, but it should be
-(def hello-world [72 101 108 108 111 44 32 119 111 114 108 100 33 10])
+(def hello-world [72 101 108 108 111 44 32 119 111 114 108 100 33])
 
 (do-secd [NIL DUM
           LDF [LD [0 0] NULL
-               TEST [RTN]
+               TEST [LDC 10 WRITEC RTN]
                LD [0 0] CAR WRITEC
                NIL LD [0 0] CDR CONS
                LD [1 0] AP
@@ -543,7 +555,6 @@ Building reduce, map, and filter.
           LDF secd-filter AP])
 ;;=> (0 2 4)
 ```
-
 
 ## SECD as a Compilation Target
 
