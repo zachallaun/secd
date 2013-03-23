@@ -28,7 +28,7 @@ arguments from the stack and return values to the stack.
 **E**nvironment: The environment contains arguments passed to functions,
 as well other values within the scope of that function.
 
-**C**ode: The code (or control) registerm contains instructions to the
+**C**ode: The code (or control) register contains instructions to the
 machine. Executing one of these instructions can change any of the four
 registers &mdash; including the code register itself. The instruction on
 the top of the code register is the next to be executed, and execution
